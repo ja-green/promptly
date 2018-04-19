@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# prompt character
+#
+# returns a '#' is the user is logged in
+# as root, a '$' otherwise
 cmpnt_promptchar() {
     [ $(id -u) = 0 ] && echo '#' || echo '$'
 }
