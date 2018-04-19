@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cmpnt_promptchar() {
+    [ $(id -u) = 0 ] && echo '#' || echo '$'
+}
+
