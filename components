@@ -2,9 +2,149 @@
 
 # prompt character
 #
-# returns a '#' is the user is logged in
+# returns a '#' if the user is logged in
 # as root, a '$' otherwise
 cmpnt_promptchar() {
     [ $(id -u) = 0 ] && echo '#' || echo '$'
+}
+
+# username
+#
+# returns the username of the current user
+# of the shell session
+cmpnt_user() {
+    echo "$(whoami)"
+}
+
+# system uptime
+#
+# returns a formatted string representing
+# the amount of time the system has been active
+cmpnt_uptime() {
+    echo "$(uptime -p):3"
+}
+
+# exit code of last command ran
+#
+# returns the exit code of the last 
+# command that was run
+cmpnt_exit_status() {
+    echo ${?}
+}
+
+# character depending on the exit code of last command ran
+#
+# returns the character given at '$1' if the exit code 
+# of the last command that was run wsa 0. returns the
+# character given at '$2' if the exit code is anything else
+cmpnt_exit_status_char() {
+    [ ${?} = 0 ] && echo -e "${1}" || echo -e "${2}" 
+}
+
+# current working directory
+#
+# returns the full path of the current working directory
+cmpnt_current_dir() {
+    echo "${PWD}"
+}
+
+# abbreviated current working directory
+#
+# returns the full path of the current working directory
+# with '$HOME' being abbreviated to '~'
+cmpnt_current_dir_abbrev() {
+    echo "${PWD/#$HOME/\~}"
+}
+
+# git upstream information
+#
+# returns the comparison of the currently checked-out branch to the
+# upstream branch. 'none' is there is no upstream branch, 'up-to-date' 
+# if they are equal, 'ahead' if you have unpublished commits,
+# 'behind' if upstream has commits you need to pull and 'diverged'
+# if both upstream and local have commits
+#
+# note that a 'git fetch' will be needed to give accurate results
+cmpnt_git_upstream() {
+    count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
+    case "${count}" in
+        "") 		u="none"
+	"0	0") 	u="up-to-date"
+	"0	"*) 	u="ahead"
+	*"	0") 	u="behind"
+		 *)	u="diverged"
+    esac
+    echo "${u}"
+}
+
+# git upstream information including commit count
+#
+# returns the same as cmpnt_git_upstream but includes the number
+# of commits you are ahead or behind by
+#
+# note that a 'git fetch' will be needed to give accurate results
+cmpnt_git_upstream_count() {
+    count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
+    case "${count}" in
+        "") 		u="none"
+	"0	0") 	u="up-to-date"
+	"0	"*) 	u="ahead ${count#0	}"
+	*"	0") 	u="behind ${count%	0}"
+		 *)	u="diverged"
+    esac
+    echo "${u}"
+}
+
+# git branch state
+#
+# returns the state of the git branch. ie. whether the branch
+# is rebasing, merging, cherry-picking, reverting or bisecting
+cmpnt_git_state() {
+    if   [ -d "${gitdir}/rebase-merge" ] || [ -d "${gitdir}/rebase-apply" ]; then
+        s="rebasing"
+    elif [ -f "${gitdir}/MERGE_HEAD" ]; then
+	s="merging"
+    elif [ -f "${gitdir}/CHERRY_PICK_HEAD" ]; then
+	s="cherry-picking"
+    elif [ -f "$g/REVERT_HEAD" ]; then
+	s="reverting"
+    elif [ -f "$g/BISECT_LOG" ]; then
+	s="bisecting"
+    fi
+
+    echo "${s}"
+}
+
+# git working tree status
+#
+# returns the status of the working tree of the currently
+# checked-out branch. this information is the equivalent 
+# of doing 'git status --short' where each character
+# returned means a different status type
+#
+# the meanings of the characters are:
+#    M - modified
+#    D - deleted
+#    ? - untracked / new
+#    A - added via 'git add'
+#    C - copied
+#    R - renamed
+#    L - clean
+git_status() {
+    git status --porcelain | (
+      while read line; do
+          case "${line//[[:space:]]/}" in
+            @('M'|'UU')*)  m="M" ; ;;
+            'D'*)          d="D" ; ;;
+            '??'*)         u="?" ; ;;
+            'A'*)          a="A" ; ;;
+            'C'*)          c="C" ; ;;
+            'R'*)          r="R" ; ;;
+          esac
+      done
+
+      b="${m}${d}${u}${a}${c}${r}"
+      [ -n "${b}" ] && echo ${b}" || echo "L" 
+  )
 }
 
