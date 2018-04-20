@@ -10,6 +10,8 @@
 #
 # note that a 'git fetch' will be needed to give accurate results
 cpnt_git_upstream() {
+    __init_git_info || return
+
     count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
     case "${count}" in
         "") 		u="none"
@@ -28,6 +30,8 @@ cpnt_git_upstream() {
 #
 # note that a 'git fetch' will be needed to give accurate results
 cpnt_git_upstreamcount() {
+    __init_git_info || return
+
     count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
     case "${count}" in
         "") 		u="none"
@@ -44,6 +48,8 @@ cpnt_git_upstreamcount() {
 # returns the state of the git branch. ie. whether the branch
 # is rebasing, merging, cherry-picking, reverting or bisecting
 cpnt_git_state() {
+    __init_git_info || return
+
     if   [ -d "${gitdir}/rebase-merge" ] || [ -d "${gitdir}/rebase-apply" ]; then
         s="rebasing"
     elif [ -f "${gitdir}/MERGE_HEAD" ]; then
@@ -75,6 +81,8 @@ cpnt_git_state() {
 #    R - renamed
 #    L - clean
 cpnt_git_status() {
+    __init_git_info || return
+
     git status --porcelain | (
       while read line; do
           case "${line//[[:space:]]/}" in
@@ -90,5 +98,36 @@ cpnt_git_status() {
       b="${m}${d}${u}${a}${c}${r}"
       [ -n "${b}" ] && echo ${b}" || echo "L" 
   )
+}
+
+__init_git_info() {
+    git_info="$(git rev-parse --show-prefix --git-dir --is-inside-git-dir \
+      --is-bare-repository --is-inside-work-tree --show-toplevel 2>/dev/null)"
+
+    exitc="${?}"
+    toplevel="${git_info##*$'\n'}"
+
+    if [ "${toplevel_exit}" != "0" ]; then
+        return 1
+    elif [[ "${toplevel}" != "" ]]; then
+        toplevel="$(basename ${toplevel})"
+    else
+        toplevel="$(basename $(git ls-remote --get-url) .git)"
+    fi    
+
+    git_info="${git_info%$'\n'*}"
+    inside_worktree="${git_info##*$'\n'}"
+    git_info="${git_info%$'\n'*}"
+    bare_repo="${git_info##*$'\n'}"
+    git_info="${git_info%$'\n'*}"
+    inside_gitdir="${git_info##*$'\n'}"
+    git_info="${git_info%$'\n'*}"
+    gitdir="${git_info%$'\n'*}"
+
+    if [[ "${git_info%$'\n'*}" != "" ]]; then
+        prefix="/${git_info%/$'\n'*}"
+    fi
+
+    return 0
 }
 
