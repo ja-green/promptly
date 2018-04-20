@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# prompt character
+#
+# returns a '#' if the user is logged in
+# as root, a '$' otherwise
+cpnt_system_promptchar() {
+    [ $(id -u) = 0 ] && echo '#' || echo '$'
+}
+
+# username
+#
+# returns the username of the current user
+# of the shell session
+cpnt_system_user() {
+    echo "$(whoami)"
+}
+
+# system uptime
+#
+# returns a formatted string representing
+# the amount of time the system has been active
+cpnt_system_uptime() {
+    echo "$(uptime -p):3"
+}
+
+# exit code of last command ran
+#
+# returns the exit code of the last 
+# command that was run
+cpnt_system_exitstatus() {
+    echo ${?}
+}
+
+# character depending on the exit code of last command ran
+#
+# returns the character given at '$1' if the exit code 
+# of the last command that was run wsa 0. returns the
+# character given at '$2' if the exit code is anything else
+cpnt_system_exitstatus_char() {
+    [ ${?} = 0 ] && echo -e "${1}" || echo -e "${2}" 
+}
+
+# current working directory
+#
+# returns the full path of the current working directory
+cpnt_system_pwd() {
+    echo "${PWD}"
+}
+
+# abbreviated current working directory
+#
+# returns the full path of the current working directory
+# with '$HOME' being abbreviated to '~'
+cpnt_system_shortpwd() {
+    echo "${PWD/#$HOME/\~}"
+}
+

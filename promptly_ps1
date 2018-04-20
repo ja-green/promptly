@@ -1,9 +1,0 @@
-unset PS1
-
-source ${HOME}/.promptly/components
-
-# add components to your PS1 here..
-PS1+="$(cmpnt_promptchar)"
-
-export PS1
-
