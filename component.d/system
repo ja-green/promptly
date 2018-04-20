@@ -8,6 +8,16 @@ cpnt_system_promptchar() {
     [ $(id -u) = 0 ] && echo '#' || echo '$'
 }
 
+# literal string
+#
+# returns whatever argument(s) are passed
+# to it, including parameter expansion
+# and escape sequences. if no arguments 
+# are passed then it returns nothing
+cpnt_system_literal() {
+    echo -e "${@}"
+}
+
 # username
 #
 # returns the username of the current user

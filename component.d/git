@@ -100,6 +100,37 @@ cpnt_git_status() {
   )
 }
 
+# git repo top-level
+#
+# returns the name of the git repository currently in
+# your working directory. if you are inside a directory
+# in your repository it will return the repository name
+# plus the further directories you are in. if you are
+# not currently in a git repository it will return your
+# current working directory with '$HOME' abbreviated
+# to a tilde '~' ie exactly the same as returned by
+# 'cpnt_system_shortpwd'
+#
+# eg:
+#    /some/path/to/git_repo             -> git_repo
+#    /some/path/to/git_repo/other/path  -> git_repo/other/path
+#    /some/path/                        -> /some/path
+#    /home/user/                        -> ~
+#    /home/user/some/path/              -> ~/some/path
+cpnt_git_toplevel() {
+    __init_git_info
+
+    if [ "${inside_gitdir}" = "true" ]; then
+        p="${toplevel}/${gitdir}"
+    elif [ "${inside_worktree}"  = "true" ]; then
+        p="${toplevel}${prefix}"
+    else
+        p="${PWD/#$HOME/\~}"
+    fi
+
+    echo "${p}"
+}
+
 __init_git_info() {
     git_info="$(git rev-parse --show-prefix --git-dir --is-inside-git-dir \
       --is-bare-repository --is-inside-work-tree --show-toplevel 2>/dev/null)"
