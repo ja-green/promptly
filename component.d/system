@@ -18,6 +18,14 @@ cpnt_system_literal() {
     echo -e "${@}"
 }
 
+# current background job count
+#
+# returns the amount of currently running
+# background jobs
+cpnt_system_jobcount() {
+    echo "$(jobs -p | wc -l)"
+}
+
 # username
 #
 # returns the username of the current user
@@ -32,6 +40,47 @@ cpnt_system_user() {
 # the amount of time the system has been active
 cpnt_system_uptime() {
     echo "$(uptime -p):3"
+}
+
+# formatted long date
+#
+# returns a formatted string representing
+# the current date in the form ''
+cpnt_system_longdate() {
+    echo "$(date)"
+}
+
+# short date (US format)
+#
+# returns a formatted string representing
+# the current date in the US form 'MM/DD/YYYY'
+cpnt_system_shortdate_us() {
+    echo "$(date +%D)"
+}
+
+# short date (UK format)
+#
+# returns a formatted string representing
+# the current date in the UK form 'DD/MM/YYYY'
+cpnt_system_shortdate_uk() {
+    echo "$(date +%d/%m/%Y)"
+}
+
+# 24 hour time
+#
+# returns a formatted string representing
+# the current time in military (24 hour) format
+# with am / pm appended depending on the time
+cpnt_system_time() {
+    echo "$(date +%X)"
+}
+
+# 12 hour time
+#
+# returns a formatted string representing
+# the current time in standard (12 hour) format
+cpnt_system_time24() {
+    echo "$(date "+%I:%M:%S %#p")"
 }
 
 # exit code of last command ran
