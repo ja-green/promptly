@@ -4,7 +4,7 @@
 #
 # returns a '#' if the user is logged in
 # as root, a '$' otherwise
-cpnt_system_promptchar() {
+cpnt_promptchar() {
     [ $(id -u) = 0 ] && echo '#' || echo '$'
 }
 
@@ -14,7 +14,7 @@ cpnt_system_promptchar() {
 # to it, including parameter expansion
 # and escape sequences. if no arguments 
 # are passed then it returns nothing
-cpnt_system_literal() {
+cpnt_literal() {
     echo -e "${@}"
 }
 
@@ -22,7 +22,7 @@ cpnt_system_literal() {
 #
 # returns the amount of currently running
 # background jobs
-cpnt_system_jobcount() {
+cpnt_jobcount() {
     echo "$(jobs -p | wc -l)"
 }
 
@@ -30,7 +30,7 @@ cpnt_system_jobcount() {
 #
 # returns the username of the current user
 # of the shell session
-cpnt_system_user() {
+cpnt_username() {
     echo "$(whoami)"
 }
 
@@ -38,7 +38,7 @@ cpnt_system_user() {
 #
 # returns a formatted string representing
 # the amount of time the system has been active
-cpnt_system_uptime() {
+cpnt_uptime() {
     echo "$(uptime -p):3"
 }
 
@@ -46,7 +46,7 @@ cpnt_system_uptime() {
 #
 # returns a formatted string representing
 # the current date in the form ''
-cpnt_system_longdate() {
+cpnt_longdate() {
     echo "$(date)"
 }
 
@@ -54,7 +54,7 @@ cpnt_system_longdate() {
 #
 # returns a formatted string representing
 # the current date in the US form 'MM/DD/YYYY'
-cpnt_system_shortdate_us() {
+cpnt_shortdate_us() {
     echo "$(date +%D)"
 }
 
@@ -62,7 +62,7 @@ cpnt_system_shortdate_us() {
 #
 # returns a formatted string representing
 # the current date in the UK form 'DD/MM/YYYY'
-cpnt_system_shortdate_uk() {
+cpnt_shortdate_uk() {
     echo "$(date +%d/%m/%Y)"
 }
 
@@ -71,7 +71,7 @@ cpnt_system_shortdate_uk() {
 # returns a formatted string representing
 # the current time in military (24 hour) format
 # with am / pm appended depending on the time
-cpnt_system_time() {
+cpnt_time() {
     echo "$(date +%X)"
 }
 
@@ -79,7 +79,7 @@ cpnt_system_time() {
 #
 # returns a formatted string representing
 # the current time in standard (12 hour) format
-cpnt_system_time24() {
+cpnt_time24() {
     echo "$(date "+%I:%M:%S %#p")"
 }
 
@@ -87,7 +87,7 @@ cpnt_system_time24() {
 #
 # returns the exit code of the last 
 # command that was run
-cpnt_system_exitstatus() {
+cpnt_exitstatus() {
     echo ${?}
 }
 
@@ -96,14 +96,14 @@ cpnt_system_exitstatus() {
 # returns the character given at '$1' if the exit code 
 # of the last command that was run wsa 0. returns the
 # character given at '$2' if the exit code is anything else
-cpnt_system_exitstatus_char() {
+cpnt_exitstatus_char() {
     [ ${?} = 0 ] && echo -e "${1}" || echo -e "${2}" 
 }
 
 # current working directory
 #
 # returns the full path of the current working directory
-cpnt_system_pwd() {
+cpnt_pwd() {
     echo "${PWD}"
 }
 
@@ -111,7 +111,7 @@ cpnt_system_pwd() {
 #
 # returns the full path of the current working directory
 # with '$HOME' being abbreviated to '~'
-cpnt_system_shortpwd() {
+cpnt_shortpwd() {
     echo "${PWD/#$HOME/\~}"
 }
 
