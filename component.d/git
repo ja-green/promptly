@@ -65,6 +65,16 @@ cpnt_git_state() {
     echo "${s}"
 }
 
+# git repository commit count
+#
+# returns the number of commits made on the current repository
+# formatted as a string
+cpnt_git_commit_count() {
+    __init_git_info || return
+
+    echo "$(git log --pretty=oneline | wc -l)"
+}
+
 # git working tree status
 #
 # returns the status of the working tree of the currently
