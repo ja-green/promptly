@@ -1,0 +1,25 @@
+# ensure PS1 is not set
+unset PS1
+
+# source components
+if [[ -d "${HOME}/.promptly/component.d" ]]; then
+    for component in $(find "${HOME}/.promptly/component.d" -type f); do
+        . ${component}
+    done
+fi
+
+# prompt function - edit this to customise your prompt!
+make_prompt() {
+    local prompt
+
+    # add promptly components to your prompt here...
+    prompt+="$(cpnt_system_user) "       # username
+    prompt+="$(cpnt_system_pwd) "        # working directory
+    prompt+="$(cpnt_system_promptchar) " # prompt character ($)
+
+    # prompt will now display as 'username /home/username $ '
+    printf "${prompt}"
+}
+
+PS1="$(make_prompt)"
+

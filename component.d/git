@@ -14,13 +14,38 @@ cpnt_git_upstream() {
 
     count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
     case "${count}" in
-        "") 		u="none"
-	"0	0") 	u="up-to-date"
-	"0	"*) 	u="ahead"
-	*"	0") 	u="behind"
-		 *)	u="diverged"
+                "") u="none"       ;;
+	"0	0") u="up-to-date" ;;
+	"0	"*) u="ahead"      ;;
+	*"	0") u="behind"     ;;
+		 *) u="diverged"   ;;
     esac
     echo "${u}"
+}
+
+# git branch name
+#
+# returns the name of the current checked-out branch in the
+# current git repository. if HEAD is in a detached state it
+# returns the abbreviated commit hash prefixed with a colon (:)
+cpnt_git_branch() {
+    __init_git_info || return
+
+    echo "${branch}"
+}
+
+cpnt_git_pwd() {
+    __init_git_info || return
+
+    if [ "true" = "${bare_repo}" ]; then
+        echo -e "${PWD}"
+    elif [ "true" = "${inside_gitdir}" ]; then
+        echo -e "${toplevel}${gitdir}${gitdir_prefix}"
+    elif [ "true" = "${inside_worktree}" ]; then
+        echo -e "${toplevel}${prefix}"
+    else
+        echo -e "${PWD}"
+    fi
 }
 
 # git upstream information including commit count
@@ -34,11 +59,11 @@ cpnt_git_upstreamcount() {
 
     count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
     case "${count}" in
-        "") 		u="none"
-	"0	0") 	u="up-to-date"
-	"0	"*) 	u="ahead ${count#0	}"
-	*"	0") 	u="behind ${count%	0}"
-		 *)	u="diverged"
+                "") u="none"                ;;
+	"0	0") u="up-to-date"          ;;
+	"0	"*) u="ahead ${count#0	}"  ;;
+	*"	0") u="behind ${count%	0}" ;;
+		 *) u="diverged"            ;;
     esac
     echo "${u}"
 }
@@ -83,6 +108,7 @@ cpnt_git_commit_count() {
 # returned means a different status type
 #
 # the meanings of the characters are:
+#    U - conflict
 #    M - modified
 #    D - deleted
 #    ? - untracked / new
@@ -96,17 +122,18 @@ cpnt_git_status() {
     git status --porcelain | (
       while read line; do
           case "${line//[[:space:]]/}" in
-            @('M'|'UU')*)  m="M" ; ;;
-            'D'*)          d="D" ; ;;
-            '??'*)         u="?" ; ;;
-            'A'*)          a="A" ; ;;
-            'C'*)          c="C" ; ;;
-            'R'*)          r="R" ; ;;
+            'UU'*) u="U" ;;
+             'M'*) m="M" ;;
+             'D'*) d="D" ;;
+            '??'*) t="?" ;;
+             'A'*) a="A" ;;
+             'C'*) c="C" ;;
+             'R'*) r="R" ;;
           esac
       done
 
-      b="${m}${d}${u}${a}${c}${r}"
-      [ -n "${b}" ] && echo ${b}" || echo "L" 
+      b="${u}${m}${d}${t}${a}${c}${r}"
+      [ -n "${b}" ] && echo "${b}" || echo "L" 
   )
 }
 
@@ -119,7 +146,7 @@ cpnt_git_status() {
 # not currently in a git repository it will return your
 # current working directory with '$HOME' abbreviated
 # to a tilde '~' ie exactly the same as returned by
-# 'cpnt_system_shortpwd'
+# 'shortpwd'
 #
 # eg:
 #    /some/path/to/git_repo             -> git_repo
@@ -142,6 +169,41 @@ cpnt_git_toplevel() {
 }
 
 __init_git_info() {
+  repo_info="$(git rev-parse --show-prefix --abbrev-ref HEAD \
+    --show-toplevel --absolute-git-dir --is-inside-git-dir   \
+    --is-bare-repository --is-inside-work-tree               \
+    --show-superproject-working-tree 2>/dev/null)"
+
+  [[ "${?}" != "0" ]] && return
+
+  parent_repo="${repo_info##*$'\n'}"
+  if [[ "true" != "${parent_repo}" ]] && [[ "false" != "${parent_repo}" ]] && [[ "" != "${parent_repo}" ]]; then
+    parent_repo="${parent_repo##*/} \u2016 "; repo_info="${repo_info%$'\n'*}"; else unset parent_repo; fi
+
+  inside_worktree="${repo_info##*$'\n'}"
+  repo_info="${repo_info%$'\n'*}"
+  bare_repo="${repo_info##*$'\n'}"
+  repo_info="${repo_info%$'\n'*}"
+  inside_gitdir="${repo_info##*$'\n'}"
+  repo_info="${repo_info%$'\n'*}"
+  gitdir_path="${repo_info##*$'\n'}"
+  gitdir="/${gitdir_path##*/}"
+  gitdir_prefix="${PWD#$gitdir_path}"
+  repo_info="${repo_info%$'\n'*}"
+    
+  [[ "true" = "${inside_gitdir}" ]] \
+    && toplevel="${parent_repo}$(basename $(git ls-remote --get-url) .git)" \
+    || toplevel="${parent_repo}$(basename ${repo_info##*$'\n'})"; repo_info="${repo_info%$'\n'*}"
+
+  [[ "${repo_info##*$'\n'}" = "HEAD" ]] \
+    && branch=":$(git rev-parse --short HEAD)" \
+    || branch="${repo_info##*$'\n'}"; repo_info="${repo_info%$'\n'*}"
+
+  [[ "${repo_info%$'\n'*}" != "" ]] \
+    && prefix="/${repo_info##*$'\n'}"; prefix="${prefix::-1}"
+}
+
+__init_git_info_old() {
     git_info="$(git rev-parse --show-prefix --git-dir --is-inside-git-dir \
       --is-bare-repository --is-inside-work-tree --show-toplevel 2>/dev/null)"
 

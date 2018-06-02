@@ -1,25 +1,269 @@
-# ensure PS1 is not set
-unset PS1
+#!/bin/bash
 
-# source components
-if [[ -d "${HOME}/.promptly/component.d" ]]; then
-    for component in $(find "${HOME}/.promptly/component.d" -type f); do
-        . ${component}
-    done
-fi
+## Copyright 2018 Jack Green (ja-green)
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
 
-# prompt function - edit this to customise your prompt!
-make_prompt() {
-    local prompt
+## svc
+## tool for managing running and testing HMRC VAT:VC microservices
+##
+## examples:
+## run vat-summary-frontend on it's default port:
+##     $ svc start vat-summary-frontend
+##
+## run view-vat-returns-frontend on port 1234:
+##     $ svc start view-vat-returns-frontend -p 1234
+##
+## stop all running microservices:
+##     $ svc stop -a
+##
+## list all microservices and their status:
+##     $ svc list -a
+##
 
-    # add promptly components to your prompt here...
-    prompt+="$(cpnt_system_user) "       # username
-    prompt+="$(cpnt_system_pwd) "        # working directory
-    prompt+="$(cpnt_system_promptchar) " # prompt character ($)
+## variable definitions
 
-    # prompt will now display as 'username /home/username $ '
-    printf "${prompt}"
+prog_name="$(basename ${0})"
+prog_repo="$(locate promptly/.git | head -n 1)/.."
+prog_vers="0.1.0" #"$(cat ${prog_repo}/VERSION)"
+prog_home="$(pwd)" #"$HOME/.promptly/"
+prog_opts=":ahtb:p:"
+prog_exit=0
+
+source "${prog_home}/component.d/git"
+source "${prog_home}/component.d/system"
+
+commands=("edit" "list" "help" "show")
+components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
+"time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
+
+# main usage text
+main="${prog_name} v${prog_vers}\n\nmanage your bash prompt through promptly"
+
+# command usage text
+edit=("edit your bash prompt" "flags: \
+  \n\t-p, --port      specify port to start on \
+  \n\t-a, --all       start all services \
+  \n\t-t, --test-only start service using test only routes \
+  \n\t-b, --branch    specify a git branch\n")
+help=("get help with a command or concept" "flags: \
+  \n\t-a, --all       stop all services\n")
+list=("list microservices" "flags: \
+  \n\t-a, --all       list all services\n")
+show=("show your prompt as it would be rendered" "")
+
+# status tags
+stat_warn="warn:"
+stat_fatal="fatal:"
+stat_hint="hint:"
+
+# error messages
+err_cannot_start_testonly="${stat_fatal} cannot start '%s' with test only routes\n"
+err_cannot_start="${stat_fatal} cannot start '%s'\n"
+err_cannot_stop="${stat_fatal} cannot stop '%s'\n"
+err_cannot_compile="${stat_fatal} cannot compile '%s'\n"
+err_cannot_clean="${stat_fatal} cannot clean '%s'\n"
+err_cannot_update="${stat_fatal} cannot update\n"
+err_cannot_populate="${stat_fatal} cannot populate stub.
+\n\n${stat_hint} Make sure '%s' is running with test only routes enabled\n"
+err_no_logfile="${stat_fatal} no log file found for '%s'\n"
+err_not_running="${stat_warn} '%s' is not running\n"
+err_already_running="${stat_warn} '%s' already running\n"
+err_no_argument="${stat_fatal} option '%s' requires an argument\n"
+err_invalid_opt="${stat_fatal} unknown option '%s'\n"
+err_invalid_service="${stat_fatal} '%s' is not a known service\n"
+err_invalid_dir="${stat_fatal} '%s' is not a recognised microservice directory\n"
+err_invalid_command="${stat_fatal} '%s' is not a known command\n
+run '${prog_name} --help' for a list of known commands\n"
+
+usage_end="for help with each command run: \
+  \n\t${prog_name} <command> -h | --help\n"
+
+flags_global="global flags: \
+  \n\t-h, --help      show this screen \
+  \n\t-v, --version   show version information\n"
+
+## usage commands
+
+main_usage() {
+  echo -e "${main}\n \
+    \nusage:\
+    \n\t${prog_name} [options] \
+    \n\t${prog_name} <command> [options] \
+    \n\ncommands:                   \
+    \n\tedit            ${edit}     \
+    \n\thelp            ${help}     \
+    \n\tlist            ${list}     \
+    \n\tshow            ${show}\n"
+
+  echo -e "${flags_global}"
+  echo -e "${usage_end}"
+
+  exit ${prog_exit}
 }
 
-PS1="$(make_prompt)"
+command_usage() {
+  eval command_array="(\"\${${command}[@]}\")"
+
+  about="${command_array[0]}"
+  flags="${command_array[1]}"
+
+  echo -e "${about}\n \
+    \nusage: \
+    \n\t${prog_name} ${command} [options] \
+    \n\t${prog_name} ${command} [microservice] [options]\n"
+
+  echo -e "${flags}"
+  echo -e "${flags_global}"
+  echo -e "${usage_end}"
+
+  exit ${prog_exit}
+}
+
+version() {
+  echo -e "${prog_name} version ${prog_vers}"
+
+  exit ${prog_exit}
+}
+
+## helper commands
+
+is_command() {
+  if [[ -z $(printf '%s\n' "${commands[@]}" | grep -w ${1}) ]]; then
+    return 1
+  fi
+}
+
+is_command_set() {
+  if [[ ! ${command+x} ]]; then
+    return 1
+  fi
+}
+
+set_command() {
+  if ! is_command_set; then
+    echo -e "${1}"
+  fi
+}
+
+is_component() {
+  if [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1}) ]]; then
+    return 1
+  fi
+}
+
+evaluate() {
+  demo_ps1=""
+
+  while read line; do
+    [[ "${line}" == \#* ]] && continue
+
+    for (( i=0; i<${#line}; i++ )); do
+      case "${line:$i:1}" in
+      \() cmd=${line:$((i+1))}
+          cmd=${cmd%%\)*}
+          skp=$((${#cmd}+1)); echo $((i+=${skp})) &>/dev/null
+          demo_ps1="${demo_ps1}$(eval cpnt_${cmd} 2>/dev/null)" ;;
+      \\) echo $((i++)) &>/dev/null
+          demo_ps1="${demo_ps1}${line:$i:1}"  ;;
+       *) demo_ps1="${demo_ps1}${line:$i:1}"  ;;
+      esac
+    done
+  done < "${prog_home}/PROMPT_STR"
+
+  echo -e ${demo_ps1}
+}
+
+die() {
+  printf "${1}" "${2}" >&2
+
+  if is_command "${2}"; then
+    command_usage
+  fi
+
+  prog_exit=1
+  exit ${prog_exit}
+}
+
+## main commands
+
+sub_edit() {
+  if [[ ! -z "${EDITOR}" ]]; then
+    "${EDITOR}" "${prog_home}/PROMPT_STR"
+  else
+    nano "${prog_home}/PROMPT_STR"
+  fi
+}
+  
+sub_help() {
+  echo 'help'
+}
+  
+sub_list() {
+  for cpnt_f in $(find ${prog_home}/component.d -type f); do
+    for cpnt in $(grep "cpnt" ${cpnt_f}); do
+      echo "${cpnt::${#cpnt}-2}"
+    done
+  done
+}
+
+sub_show() {
+  if [[ -f "${prog_home}/PROMPT_STR" ]]; then
+    echo -e "your prompt is set to:"
+
+    while read line; do
+      echo -e "\t${line}"
+    done < "${prog_home}/PROMPT_STR"
+
+    echo -e "\nwhich will display as: \
+      \n\t$(evaluate ${prog_home}/PROMPT_STR)\n"
+    
+  else
+    die "" ""
+  fi
+}
+
+## parse arguments and begin
+
+if [[ ${#} -eq 0 ]]; then main_usage; fi
+
+main() {
+  while [ -n "${1}" ]; do
+    case "${1}" in
+      --) shift; break;;
+      -*) case "${1}" in
+      -v|--version)   version ;;
+      -b|--branch)    if [ ! -z "${2}" ];   then branch="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -p|--port)      if [ ! -z "${2}" ];   then port="${2}"   ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -h|--help)      if ! is_command_set;  then main_usage    ; else command_usage; fi ;;
+      -*)             die "${err_invalid_opt}" "${1}" ;;
+    esac ;;
+
+    *) if   is_command "${1}"; 	then command=$(set_command "${1}")
+       elif ! is_command_set;   then die "${err_invalid_command}" "${1}"
+       else die "${err_invalid_opt}" "${1}"; fi ;;
+
+    esac
+    shift
+
+  done
+
+  if ! is_command_set; then main_usage; fi
+
+  sub_"${command}"
+}
+
+main "${@}"
+
+exit ${prog_exit}
 
