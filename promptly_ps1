@@ -8,18 +8,31 @@ if [[ -d "${HOME}/.promptly/component.d" ]]; then
     done
 fi
 
-# prompt function - edit this to customise your prompt!
-make_prompt() {
+# prompt creation function
+promptly_ps1() {
     local prompt
+    local prompt_str="${PWD}/PROMPT_STR"
 
-    # add promptly components to your prompt here...
-    prompt+="$(cpnt_system_user) "       # username
-    prompt+="$(cpnt_system_pwd) "        # working directory
-    prompt+="$(cpnt_system_promptchar) " # prompt character ($)
+    while read line; do
+    [[ "${line}" == \#* ]] && continue
 
-    # prompt will now display as 'username /home/username $ '
+      for (( i=0; i<${#line}; i++ )); do
+        case "${line:$i:1}" in
+        \() cmd="${line:$((i+1))}"
+            cmd="${cmd%%\)*}"
+            skp=$((${#cmd}+1)); echo $((i+=${skp})) &>/dev/null
+            prompt+='$('
+            prompt+="cpnt_${cmd}"
+            prompt+=')' ;;
+        \\) echo $((i++)) &>/dev/null
+            prompt+="${line:$i:1}"  ;;
+         *) prompt+="${line:$i:1}"  ;;
+        esac
+      done
+    done < "${prompt_str}"
+
     printf "${prompt}"
 }
 
-PS1="$(make_prompt)"
+PS1="$(promptly_ps1)"
 
