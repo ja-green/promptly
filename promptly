@@ -136,7 +136,7 @@ version() {
   exit ${prog_exit}
 }
 
-## helper commands
+## helper functions
 
 is_command() {
   if [[ -z $(printf '%s\n' "${commands[@]}" | grep -w ${1}) ]]; then
@@ -162,6 +162,27 @@ is_component() {
   fi
 }
 
+parse_any() {
+  echo "${line:$i:1}"
+
+  return 0
+}
+
+parse_esc() {
+  echo $((i++)) &>/dev/null
+  echo "${line:$i:1}"
+
+  return 0
+}
+
+parse_cmd() {
+  cmd=${line:$((i+1))}
+  cmd=${cmd%%\)*}
+  echo -e "$(eval cpnt_${cmd} 2>/dev/null)"
+
+  return $((${#cmd}+1))
+}
+
 evaluate() {
   demo_ps1=""
 
@@ -169,15 +190,15 @@ evaluate() {
     [[ "${line}" == \#* ]] && continue
 
     for (( i=0; i<${#line}; i++ )); do
+
       case "${line:$i:1}" in
-      \() cmd=${line:$((i+1))}
-          cmd=${cmd%%\)*}
-          skp=$((${#cmd}+1)); echo $((i+=${skp})) &>/dev/null
-          demo_ps1="${demo_ps1}$(eval cpnt_${cmd} 2>/dev/null)" ;;
-      \\) echo $((i++)) &>/dev/null
-          demo_ps1="${demo_ps1}${line:$i:1}"  ;;
-       *) demo_ps1="${demo_ps1}${line:$i:1}"  ;;
+      \() demo_ps1+="$(parse_cmd)" ;;
+      \\) demo_ps1+="$(parse_esc)" ;;
+       *) demo_ps1+="$(parse_any)" ;;
       esac
+
+      echo $((i+=${?})) &>/dev/null
+
     done
   done < "${prog_home}/PROMPT_STR"
 

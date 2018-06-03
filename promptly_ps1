@@ -3,36 +3,36 @@ unset PS1
 
 # source components
 if [[ -d "${HOME}/.promptly/component.d" ]]; then
-    for component in $(find "${HOME}/.promptly/component.d" -type f); do
-        . ${component}
-    done
+  for component in $(find "${HOME}/.promptly/component.d" -type f); do
+    . ${component}
+  done
 fi
 
 # prompt creation function
 promptly_ps1() {
-    local prompt
-    local prompt_str="${PWD}/PROMPT_STR"
+  source promptly
 
-    while read line; do
+  local prompt
+  local prompt_str="${PWD}/PROMPT_STR"
+
+  while read -r line; do
     [[ "${line}" == \#* ]] && continue
 
-      for (( i=0; i<${#line}; i++ )); do
-        case "${line:$i:1}" in
-        \() cmd="${line:$((i+1))}"
-            cmd="${cmd%%\)*}"
-            skp=$((${#cmd}+1)); echo $((i+=${skp})) &>/dev/null
-            prompt+='$('
-            prompt+="cpnt_${cmd}"
-            prompt+=')' ;;
-        \\) echo $((i++)) &>/dev/null
-            prompt+="${line:$i:1}"  ;;
-         *) prompt+="${line:$i:1}"  ;;
-        esac
-      done
-    done < "${prompt_str}"
+    for (( i=0; i<${#line}; i++ )); do
 
-    printf "${prompt}"
+      case "${line:$i:1}" in
+      \() prompt+="$(parse_cmd)" ;;
+      \\) prompt+="$(parse_esc)" ;;
+       *) prompt+="$(parse_any)" ;;
+      esac
+
+      echo $((i+=${?})) &>/dev/null
+
+    done
+  done < "${prompt_str}"
+
+  printf "${prompt}"
 }
 
-PS1="$(promptly_ps1)"
+PS1='$(promptly_ps1)'
 
