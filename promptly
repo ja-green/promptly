@@ -165,7 +165,7 @@ is_component() {
 evaluate() {
   demo_ps1=""
 
-  while read line; do
+  while read -r line; do
     [[ "${line}" == \#* ]] && continue
 
     for (( i=0; i<${#line}; i++ )); do
@@ -221,7 +221,7 @@ sub_show() {
   if [[ -f "${prog_home}/PROMPT_STR" ]]; then
     echo -e "your prompt is set to:"
 
-    while read line; do
+    while read -r line; do
       echo -e "\t${line}"
     done < "${prog_home}/PROMPT_STR"
 
