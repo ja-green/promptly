@@ -43,7 +43,7 @@ prog_exit=0
 source "${prog_home}/component.d/git"
 source "${prog_home}/component.d/system"
 
-commands=("edit" "list" "help" "show")
+commands=("edit" "list" "help" "show" "version")
 components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
 "time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
 
@@ -130,7 +130,7 @@ command_usage() {
   exit ${prog_exit}
 }
 
-version() {
+print_version() {
   echo -e "${prog_name} version ${prog_vers}"
 
   exit ${prog_exit}
@@ -227,7 +227,11 @@ sub_edit() {
 }
   
 sub_help() {
-  echo 'help'
+  main_usage
+}
+
+sub_version() {
+  print_version
 }
   
 sub_list() {
@@ -256,22 +260,22 @@ sub_show() {
 
 ## parse arguments and begin
 
-if [[ ${#} -eq 0 ]]; then main_usage; fi
+[[ ${#} -eq 0 ]] && main_usage
 
 main() {
   while [ -n "${1}" ]; do
     case "${1}" in
       --) shift; break;;
       -*) case "${1}" in
-      -v|--version)   version ;;
+      -v|--version)   print_version ;;
       -b|--branch)    if [ ! -z "${2}" ];   then branch="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
       -p|--port)      if [ ! -z "${2}" ];   then port="${2}"   ; else die "${err_no_argument}" "${1}"; fi; shift ;;
       -h|--help)      if ! is_command_set;  then main_usage    ; else command_usage; fi ;;
       -*)             die "${err_invalid_opt}" "${1}" ;;
     esac ;;
 
-    *) if   is_command "${1}"; 	then command=$(set_command "${1}")
-       elif ! is_command_set;   then die "${err_invalid_command}" "${1}"
+    *) if   is_command "${1}"; then command=$(set_command "${1}")
+       elif ! is_command_set;  then die "${err_invalid_command}" "${1}"
        else die "${err_invalid_opt}" "${1}"; fi ;;
 
     esac
