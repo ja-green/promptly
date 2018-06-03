@@ -1,2 +1,6 @@
+# prompt string
 PROMPT_STR
+
+# vim swp files
+*.swp
 
