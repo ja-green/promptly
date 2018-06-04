@@ -12,16 +12,6 @@ cpnt_promptchar() {
       || echo "${promptchar[prefix]} ${promptchar[user_icon]} ${promptchar[suffix]}"
 }
 
-# literal string
-#
-# returns whatever argument(s) are passed
-# to it, including parameter expansion
-# and escape sequences. if no arguments 
-# are passed then it returns nothing
-cpnt_literal() {
-    echo -e "${@}"
-}
-
 # current background job count
 #
 # returns the amount of currently running
