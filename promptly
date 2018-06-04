@@ -93,7 +93,7 @@ flags_global="global flags: \
   \n\t-h, --help      show this screen \
   \n\t-v, --version   show version information\n"
 
-## usage commands
+## usage functions
 
 main_usage() {
   echo -e "${main}\n \
@@ -162,6 +162,19 @@ is_component() {
   fi
 }
 
+die() {
+  printf "${1}" "${2}" >&2
+
+  if is_command "${2}"; then
+    command_usage
+  fi
+
+  prog_exit=1
+  exit ${prog_exit}
+}
+
+## prompt parsing functions
+
 parse_any() {
   echo "${line:$i:1}"
 
@@ -203,17 +216,6 @@ evaluate() {
   done < "${prog_home}/PROMPT_STR"
 
   echo -e ${demo_ps1}
-}
-
-die() {
-  printf "${1}" "${2}" >&2
-
-  if is_command "${2}"; then
-    command_usage
-  fi
-
-  prog_exit=1
-  exit ${prog_exit}
 }
 
 ## main commands
