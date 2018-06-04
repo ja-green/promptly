@@ -1,0 +1,15 @@
+# exit status {
+declare -A exit_status=(
+  [fail_icon]="F"
+  [pass_icon]="P"
+  [prefix]=""
+  [suffix]=""
+)
+
+declare -A promptchar=(
+  [user_icon]="$"
+  [root_icon]="#"
+  [prefix]=""
+  [suffix]=""
+)
+

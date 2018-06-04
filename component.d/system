@@ -1,11 +1,15 @@
 #!/bin/bash
 
+source "${PWD}/config"
+
 # prompt character
 #
 # returns a '#' if the user is logged in
 # as root, a '$' otherwise
 cpnt_promptchar() {
-    [ $(id -u) = 0 ] && echo '#' || echo '$'
+    [ $(id -u) = 0 ] \
+      && echo "${promptchar[prefix]} ${promptchar[root_icon]} ${promptchar[suffix]}" \
+      || echo "${promptchar[prefix]} ${promptchar[user_icon]} ${promptchar[suffix]}"
 }
 
 # literal string
