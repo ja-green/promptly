@@ -14,21 +14,21 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-## svc
-## tool for managing running and testing HMRC VAT:VC microservices
+## promptly
+## easy to use, component based library for customising your bash prompt
 ##
 ## examples:
-## run vat-summary-frontend on it's default port:
-##     $ svc start vat-summary-frontend
+## edit your prompt:
+##     $ prommptly edit -e vim
 ##
-## run view-vat-returns-frontend on port 1234:
-##     $ svc start view-vat-returns-frontend -p 1234
+## show what your current prompt would look like:
+##     $ promptly show
 ##
-## stop all running microservices:
-##     $ svc stop -a
+## list available components:
+##     $ promptly help components
 ##
-## list all microservices and their status:
-##     $ svc list -a
+## get help with a specific component:
+##     $ promptly help git_status
 ##
 
 ## variable definitions
@@ -43,7 +43,7 @@ prog_exit=0
 source "${prog_home}/component.d/git"
 source "${prog_home}/component.d/system"
 
-m_cmds=("edit" "list" "help" "show" "version")
+m_cmds=("edit" "help" "show" "version")
 s_cmds=("components")
 components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
 "time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
@@ -53,15 +53,10 @@ main="${prog_name} v${prog_vers}\n\nmanage your bash prompt through promptly"
 
 # command usage text
 edit=("edit your bash prompt" "flags: \
-  \n\t-p, --port      specify port to start on \
-  \n\t-a, --all       start all services \
-  \n\t-t, --test-only start service using test only routes \
-  \n\t-b, --branch    specify a git branch\n")
-help=("get help with a command or concept" "flags: \
-  \n\t-a, --all       stop all services\n")
-list=("list microservices" "flags: \
-  \n\t-a, --all       list all services\n")
+  \n\t-e, --editor    specify an editor to use\n")
+help=("get help with a command or concept" "")
 show=("show your prompt as it would be rendered" "")
+version=("show version information" "")
 
 # status tags
 stat_warn="warn:"
@@ -69,25 +64,13 @@ stat_fatal="fatal:"
 stat_hint="hint:"
 
 # error messages
-err_cannot_start_testonly="${stat_fatal} cannot start '%s' with test only routes\n"
-err_cannot_start="${stat_fatal} cannot start '%s'\n"
-err_cannot_stop="${stat_fatal} cannot stop '%s'\n"
-err_cannot_compile="${stat_fatal} cannot compile '%s'\n"
-err_cannot_clean="${stat_fatal} cannot clean '%s'\n"
-err_cannot_update="${stat_fatal} cannot update\n"
-err_cannot_populate="${stat_fatal} cannot populate stub.
-\n\n${stat_hint} Make sure '%s' is running with test only routes enabled\n"
-err_no_logfile="${stat_fatal} no log file found for '%s'\n"
-err_not_running="${stat_warn} '%s' is not running\n"
-err_already_running="${stat_warn} '%s' already running\n"
 err_no_argument="${stat_fatal} option '%s' requires an argument\n"
 err_invalid_opt="${stat_fatal} unknown option '%s'\n"
-err_invalid_service="${stat_fatal} '%s' is not a known service\n"
-err_invalid_dir="${stat_fatal} '%s' is not a recognised microservice directory\n"
 err_invalid_m_cmd="${stat_fatal} '%s' is not a known command\n
 run '${prog_name} --help' for a list of known commands\n"
 err_invalid_s_cmd="${stat_fatal} '%s' is not a known subcommand\n"
 err_no_man="${stat_fatal} no help text for '%s'\n"
+err_no_editor="${stat_fatal} unrecognised editor\n"
 
 usage_end="for help with each command run: \
   \n\t${prog_name} <command> -h | --help\n"
@@ -107,7 +90,8 @@ main_usage() {
     \n\tedit            ${edit}     \
     \n\thelp            ${help}     \
     \n\tlist            ${list}     \
-    \n\tshow            ${show}\n"
+    \n\tshow            ${show}     \
+    \n\tversion         ${version}  \n"
 
   echo -e "${flags_global}"
   echo -e "${usage_end}"
@@ -243,11 +227,8 @@ evaluate() {
 ## main commands
 
 sub_edit() {
-  if [[ ! -z "${EDITOR}" ]]; then
-    "${EDITOR}" "${prog_home}/PROMPT_STR"
-  else
-    nano "${prog_home}/PROMPT_STR"
-  fi
+  "${editor:-$EDITOR}" "${prog_home}/PROMPT_STR" 2>/dev/null \
+  || die "${err_no_editor}"
 }
   
 sub_help() {
@@ -261,14 +242,6 @@ sub_version() {
   print_version
 }
   
-sub_list() {
-  for cpnt_f in $(find ${prog_home}/component.d -type f); do
-    for cpnt in $(grep "cpnt" ${cpnt_f}); do
-      echo "${cpnt::${#cpnt}-2}"
-    done
-  done
-}
-
 sub_show() {
   if [[ -f "${prog_home}/PROMPT_STR" ]]; then
     echo -e "your prompt is set to:"
@@ -295,8 +268,7 @@ main() {
       --) shift; break;;
       -*) case "${1}" in
       -v|--version)   print_version ;;
-      -b|--branch)    if [ ! -z "${2}" ]; then branch="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
-      -p|--port)      if [ ! -z "${2}" ]; then port="${2}"   ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -e|--editor)    if [ ! -z "${2}" ]; then editor="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
       -h|--help)      if ! is_m_cmd_set;  then main_usage    ; else m_cmd_usage; fi ;;
       -*)             die "${err_invalid_opt}" "${1}" ;;
     esac ;;
