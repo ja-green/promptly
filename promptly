@@ -43,7 +43,8 @@ prog_exit=0
 source "${prog_home}/component.d/git"
 source "${prog_home}/component.d/system"
 
-commands=("edit" "list" "help" "show" "version")
+m_cmds=("edit" "list" "help" "show" "version")
+s_cmds=("components")
 components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
 "time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
 
@@ -83,8 +84,9 @@ err_no_argument="${stat_fatal} option '%s' requires an argument\n"
 err_invalid_opt="${stat_fatal} unknown option '%s'\n"
 err_invalid_service="${stat_fatal} '%s' is not a known service\n"
 err_invalid_dir="${stat_fatal} '%s' is not a recognised microservice directory\n"
-err_invalid_command="${stat_fatal} '%s' is not a known command\n
+err_invalid_m_cmd="${stat_fatal} '%s' is not a known command\n
 run '${prog_name} --help' for a list of known commands\n"
+err_invalid_s_cmd="${stat_fatal} '%s' is not a known subcommand\n"
 
 usage_end="for help with each command run: \
   \n\t${prog_name} <command> -h | --help\n"
@@ -112,16 +114,16 @@ main_usage() {
   exit ${prog_exit}
 }
 
-command_usage() {
-  eval command_array="(\"\${${command}[@]}\")"
+m_cmd_usage() {
+  eval m_cmd_arr="(\"\${${m_cmd}[@]}\")"
 
-  about="${command_array[0]}"
-  flags="${command_array[1]}"
+  about="${m_cmd_arr[0]}"
+  flags="${m_cmd_arr[1]}"
 
   echo -e "${about}\n \
     \nusage: \
-    \n\t${prog_name} ${command} [options] \
-    \n\t${prog_name} ${command} [microservice] [options]\n"
+    \n\t${prog_name} ${m_cmd} [options] \
+    \n\t${prog_name} ${m_cmd} [microservice] [options]\n"
 
   echo -e "${flags}"
   echo -e "${flags_global}"
@@ -138,20 +140,39 @@ print_version() {
 
 ## helper functions
 
-is_command() {
-  if [[ -z $(printf '%s\n' "${commands[@]}" | grep -w ${1}) ]]; then
+is_m_cmd() {
+  if [[ -z $(printf '%s\n' "${m_cmds[@]}" | grep -w ${1}) ]]; then
     return 1
   fi
 }
 
-is_command_set() {
-  if [[ ! ${command+x} ]]; then
+is_m_cmd_set() {
+  if [[ ! ${m_cmd+x} ]]; then
     return 1
   fi
 }
 
-set_command() {
-  if ! is_command_set; then
+set_m_cmd() {
+  if ! is_m_cmd_set; then
+    echo -e "${1}"
+  fi
+}
+
+is_s_cmd() {
+  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1}) ]] \
+  && [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1}) ]]; then
+    return 1
+  fi
+}
+
+is_s_cmd_set() {
+  if [[ ! ${s_cmd+x} ]]; then
+    return 1
+  fi
+}
+
+set_s_cmd() {
+  if ! is_s_cmd_set; then
     echo -e "${1}"
   fi
 }
@@ -165,8 +186,8 @@ is_component() {
 die() {
   printf "${1}" "${2}" >&2
 
-  if is_command "${2}"; then
-    command_usage
+  if is_m_cmd "${2}"; then
+    m_cmd_usage
   fi
 
   prog_exit=1
@@ -270,24 +291,27 @@ main() {
       --) shift; break;;
       -*) case "${1}" in
       -v|--version)   print_version ;;
-      -b|--branch)    if [ ! -z "${2}" ];   then branch="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
-      -p|--port)      if [ ! -z "${2}" ];   then port="${2}"   ; else die "${err_no_argument}" "${1}"; fi; shift ;;
-      -h|--help)      if ! is_command_set;  then main_usage    ; else command_usage; fi ;;
+      -b|--branch)    if [ ! -z "${2}" ]; then branch="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -p|--port)      if [ ! -z "${2}" ]; then port="${2}"   ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -h|--help)      if ! is_m_cmd_set;  then main_usage    ; else m_cmd_usage; fi ;;
       -*)             die "${err_invalid_opt}" "${1}" ;;
     esac ;;
 
-    *) if   is_command "${1}"; then command=$(set_command "${1}")
-       elif ! is_command_set;  then die "${err_invalid_command}" "${1}"
-       else die "${err_invalid_opt}" "${1}"; fi ;;
+    *) if     is_m_cmd "${1}"; then m_cmd=$(set_m_cmd "${1}")
+       elif ! is_m_cmd_set;    then die  "${err_invalid_m_cmd}" "${1}"
+       elif   is_s_cmd "${1}"; then s_cmd=$(set_s_cmd "${1}")
+       elif ! is_s_cmd_set;    then die  "${err_invalid_s_cmd}" "${1}"
+ 
+       else   die "${err_invalid_opt}" "${1}"; fi ;;
 
     esac
     shift
 
   done
 
-  if ! is_command_set; then main_usage; fi
+  if ! is_m_cmd_set; then main_usage; fi
 
-  sub_"${command}"
+  sub_"${m_cmd}"
 }
 
 main "${@}"
