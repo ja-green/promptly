@@ -1,6 +1,6 @@
 # this is your promptly prompt. 
 # components are added by typing their name between brackets.
-# for a list of all available components just type 'promptly list'
+# for a list of all available components just type 'promptly help components'
 
 welcome to promptly! (username) (pwd) (promptchar) 
 
