@@ -2,5 +2,7 @@
 # components are added by typing their name between brackets.
 # for a list of all available components just type 'promptly help components'
 
-welcome to promptly! (username) (pwd) (promptchar) 
+L:welcome to promptly! (username) (pwd) (promptchar) 
+R:test (git_branch)
+T:12345 (git_status) 67890
 

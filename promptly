@@ -270,13 +270,12 @@ sub_show() {
       echo -e "\t${line}"
     done < "${prog_home}/PROMPT_STR"
 
-    echo -e "\nwhich will display as:"
-
-    [ ${prompt[l]+_} ] && echo -e "\tLEFT:  ${prompt[l]}"
-    [ ${prompt[r]+_} ] && echo -e "\tRIGHT: ${prompt[r]}"
-    [ ${prompt[t]+_} ] && echo -e "\tTITLE: ${prompt[t]}"
-
-    echo
+    [ ${prompt[l]+_} ] \
+      && echo -e "your left prompt will display as:\n\t${prompt[l]}\n"
+    [ ${prompt[r]+_} ] \
+      && echo -e "your right prompt will display as:\n\t${prompt[r]}\n"
+    [ ${prompt[t]+_} ] \
+      && echo -e "your window title will display as:\n\t${prompt[t]}\n"
 
   else
     die "" ""
