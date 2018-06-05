@@ -252,7 +252,8 @@ sub_edit() {
 sub_help() {
   [ -z ${s_cmd} ] && main_usage
 
-  man "promptly${s_cmd}" 2>/dev/null \
+  man "promptly${s_cmd}" 2>/dev/null     \
+  || man "promptly-${s_cmd}" 2>/dev/null \
   || die "${e_noman}" "${s_cmd}"
 }
 
