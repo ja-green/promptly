@@ -43,6 +43,8 @@ prog_exit=0
 source "${prog_home}/component.d/git"
 source "${prog_home}/component.d/system"
 
+declare -A prompt
+
 components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
 "time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
 m_cmds=("edit" "help" "show" "version")
@@ -204,24 +206,44 @@ parse_cmd() {
 
 evaluate() {
   demo_ps1=""
+  section="L"
 
   while read -r line; do
     [[ "${line}" == \#* ]] && continue
 
     for (( i=0; i<${#line}; i++ )); do
 
-      case "${line:$i:1}" in
-      \() demo_ps1+="$(parse_cmd)" ;;
-      \\) demo_ps1+="$(parse_esc)" ;;
-       *) demo_ps1+="$(parse_any)" ;;
+      case "${line:$i:2}" in
+      R:) section="R"
+          echo $((i+=2)) &>/dev/null ;;
+      T:) section="T"
+          echo $((i+=2)) &>/dev/null ;;
+      L:) section="L"
+          echo $((i+=2)) &>/dev/null ;;
+      esac
+
+      case "${section}" in
+      R) case "${line:$i:1}" in
+          \() prompt[r]+="$(parse_cmd)" ;;
+          \\) prompt[r]+="$(parse_esc)" ;;
+           *) prompt[r]+="$(parse_any)" ;;
+         esac ;;
+      T) case "${line:$i:1}" in
+          \() prompt[t]+="$(parse_cmd)" ;;
+          \\) prompt[t]+="$(parse_esc)" ;;
+           *) prompt[t]+="$(parse_any)" ;;
+         esac ;;
+      L) case "${line:$i:1}" in
+          \() prompt[l]+="$(parse_cmd)" ;;
+          \\) prompt[l]+="$(parse_esc)" ;;
+           *) prompt[l]+="$(parse_any)" ;;
+         esac ;;
       esac
 
       echo $((i+=${?})) &>/dev/null
 
     done
   done < "${prog_home}/PROMPT_STR"
-
-  echo -e ${demo_ps1}
 }
 
 ## main commands
@@ -244,15 +266,22 @@ sub_version() {
   
 sub_show() {
   if [[ -f "${prog_home}/PROMPT_STR" ]]; then
+    evaluate 
+
     echo -e "your prompt is set to:"
 
     while read -r line; do
       echo -e "\t${line}"
     done < "${prog_home}/PROMPT_STR"
 
-    echo -e "\nwhich will display as: \
-      \n\t$(evaluate ${prog_home}/PROMPT_STR)\n"
-    
+    echo -e "\nwhich will display as:"
+
+    [ ${prompt[l]+_} ] && echo -e "\tLEFT:  ${prompt[l]}"
+    [ ${prompt[r]+_} ] && echo -e "\tRIGHT: ${prompt[r]}"
+    [ ${prompt[t]+_} ] && echo -e "\tTITLE: ${prompt[t]}"
+
+    echo
+
   else
     die "" ""
   fi
