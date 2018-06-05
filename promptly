@@ -35,7 +35,7 @@
 
 prog_name="$(basename ${0})"
 prog_repo="$(locate promptly/.git | head -n 1)/.."
-prog_vers="0.1.0" #"$(cat ${prog_repo}/VERSION)"
+prog_vers="0.2.0" #"$(cat ${prog_repo}/VERSION)"
 prog_home="$(pwd)" #"$HOME/.promptly/"
 prog_opts=":ahtb:p:"
 prog_exit=0
@@ -61,18 +61,18 @@ show=("show your prompt as it would be rendered" "")
 version=("show version information" "")
 
 # status tags
-stat_warn="warn:"
-stat_fatal="fatal:"
-stat_hint="hint:"
+s_wrn="warn:"
+s_ftl="fatal:"
+s_hnt="hint:"
 
 # error messages
-err_no_argument="${stat_fatal} option '%s' requires an argument\n"
-err_invalid_opt="${stat_fatal} unknown option '%s'\n"
-err_invalid_m_cmd="${stat_fatal} '%s' is not a known command\n
+e_noarg="${s_ftl} option '%s' requires an argument\n"
+e_ivopt="${s_ftl} unknown option '%s'\n"
+e_noman="${s_ftl} no help text for '%s'\n"
+e_noedt="${s_ftl} unrecognised editor\n"
+e_ivsmd="${s_ftl} '%s' is not a known subcommand\n"
+e_ivmmd="${s_ftl} '%s' is not a known command\n
 run '${prog_name} --help' for a list of known commands\n"
-err_invalid_s_cmd="${stat_fatal} '%s' is not a known subcommand\n"
-err_no_man="${stat_fatal} no help text for '%s'\n"
-err_no_editor="${stat_fatal} unrecognised editor\n"
 
 usage_end="for help with each command run: \
   \n\t${prog_name} <command> -h | --help\n"
@@ -91,7 +91,6 @@ main_usage() {
     \n\ncommands:                   \
     \n\tedit            ${edit}     \
     \n\thelp            ${help}     \
-    \n\tlist            ${list}     \
     \n\tshow            ${show}     \
     \n\tversion         ${version}  \n"
 
@@ -247,14 +246,14 @@ evaluate() {
 
 sub_edit() {
   "${editor:-$EDITOR}" "${prog_home}/PROMPT_STR" 2>/dev/null \
-  || die "${err_no_editor}"
+  || die "${e_noedt}"
 }
   
 sub_help() {
   [ -z ${s_cmd} ] && main_usage
 
   man "promptly${s_cmd}" 2>/dev/null \
-  || die "${err_no_man}" "${s_cmd}"
+  || die "${e_noman}" "${s_cmd}"
 }
 
 sub_version() {
@@ -294,17 +293,17 @@ main() {
       --) shift; break;;
       -*) case "${1}" in
       -v|--version)   print_version ;;
-      -e|--editor)    if [ ! -z "${2}" ]; then editor="${2}" ; else die "${err_no_argument}" "${1}"; fi; shift ;;
+      -e|--editor)    if [ ! -z "${2}" ]; then editor="${2}" ; else die "${e_noarg}" "${1}"; fi; shift ;;
       -h|--help)      if ! is_m_cmd_set;  then main_usage    ; else m_cmd_usage; fi ;;
-      -*)             die "${err_invalid_opt}" "${1}" ;;
+      -*)             die "${e_ivopt}" "${1}" ;;
     esac ;;
 
     *) if   ! is_m_cmd_set  && is_m_cmd "${1}"; then m_cmd=$(set_m_cmd "${1}")
-       elif ! is_m_cmd_set; then die    "${err_invalid_m_cmd}" "${1}"
+       elif ! is_m_cmd_set; then die    "${e_ivmmd}" "${1}"
        elif ! is_s_cmd_set  && is_s_cmd "${1}"; then s_cmd=$(set_s_cmd "${1}")
-       elif ! is_s_cmd_set; then die    "${err_invalid_s_cmd}" "${1}"
+       elif ! is_s_cmd_set; then die    "${e_ivsmd}" "${1}"
  
-       else   die "${err_invalid_opt}" "${1}"; fi ;;
+       else   die "${e_ivopt}" "${1}"; fi ;;
 
     esac
     shift
