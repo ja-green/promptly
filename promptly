@@ -190,8 +190,8 @@ parse_any() {
 }
 
 parse_esc() {
-  echo $((i++)) &>/dev/null
-  echo "${line:$i:1}"
+  true $((i++))
+  echo ${line:$i:1}
 
   return 0
 }
@@ -214,12 +214,9 @@ evaluate() {
     for (( i=0; i<${#line}; i++ )); do
 
       case "${line:$i:2}" in
-      R:) section="R"
-          echo $((i+=2)) &>/dev/null ;;
-      T:) section="T"
-          echo $((i+=2)) &>/dev/null ;;
-      L:) section="L"
-          echo $((i+=2)) &>/dev/null ;;
+      R:) section="R"; true $((i+=2)) ;;
+      T:) section="T"; true $((i+=2)) ;;
+      L:) section="L"; true $((i+=2)) ;;
       esac
 
       case "${section}" in
@@ -240,7 +237,7 @@ evaluate() {
          esac ;;
       esac
 
-      echo $((i+=${?})) &>/dev/null
+      true $((i+=${?}))
 
     done
   done < "${prog_home}/PROMPT_STR"
