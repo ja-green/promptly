@@ -43,10 +43,10 @@ prog_exit=0
 source "${prog_home}/component.d/git"
 source "${prog_home}/component.d/system"
 
-m_cmds=("edit" "help" "show" "version")
-s_cmds=("components")
 components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
 "time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
+m_cmds=("edit" "help" "show" "version")
+s_cmds=("components" "${m_cmds[@]}" "${components[@]}")
 
 # main usage text
 main="${prog_name} v${prog_vers}\n\nmanage your bash prompt through promptly"
@@ -144,8 +144,7 @@ set_m_cmd() {
 }
 
 is_s_cmd() {
-  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1}) ]] \
-  && [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1}) ]]; then
+  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1}) ]]; then
     return 1
   fi
 }
@@ -171,7 +170,8 @@ is_component() {
 die() {
   printf "${1}" "${2}" >&2
 
-  if is_m_cmd "${2}"; then
+  if is_m_cmd "${2}" \
+  && [[ ${m_cmd} != "help" ]]; then
     m_cmd_usage
   fi
 
@@ -273,10 +273,10 @@ main() {
       -*)             die "${err_invalid_opt}" "${1}" ;;
     esac ;;
 
-    *) if     is_m_cmd "${1}"; then m_cmd=$(set_m_cmd "${1}")
-       elif ! is_m_cmd_set;    then die  "${err_invalid_m_cmd}" "${1}"
-       elif   is_s_cmd "${1}"; then s_cmd=$(set_s_cmd "${1}")
-       elif ! is_s_cmd_set;    then die  "${err_invalid_s_cmd}" "${1}"
+    *) if   ! is_m_cmd_set  && is_m_cmd "${1}"; then m_cmd=$(set_m_cmd "${1}")
+       elif ! is_m_cmd_set; then die    "${err_invalid_m_cmd}" "${1}"
+       elif ! is_s_cmd_set  && is_s_cmd "${1}"; then s_cmd=$(set_s_cmd "${1}")
+       elif ! is_s_cmd_set; then die    "${err_invalid_s_cmd}" "${1}"
  
        else   die "${err_invalid_opt}" "${1}"; fi ;;
 
