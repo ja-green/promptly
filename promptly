@@ -126,7 +126,7 @@ print_version() {
 ## helper functions
 
 is_m_cmd() {
-  if [[ -z $(printf '%s\n' "${m_cmds[@]}" | grep -w ${1}) ]]; then
+  if [[ -z $(printf '%s\n' "${m_cmds[@]}" | grep -w ${1//-}) ]]; then
     return 1
   fi
 }
@@ -144,7 +144,7 @@ set_m_cmd() {
 }
 
 is_s_cmd() {
-  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1}) ]]; then
+  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1//-}) ]]; then
     return 1
   fi
 }
@@ -162,7 +162,7 @@ set_s_cmd() {
 }
 
 is_component() {
-  if [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1}) ]]; then
+  if [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1//-}) ]]; then
     return 1
   fi
 }
