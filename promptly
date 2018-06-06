@@ -31,291 +31,36 @@
 ##     $ promptly help git_status
 ##
 
-## variable definitions
-
-prog_name="$(basename ${0})"
-prog_repo="$(locate promptly/.git | head -n 1)/.."
-prog_vers="0.2.0" #"$(cat ${prog_repo}/VERSION)"
-prog_home="$(pwd)" #"$HOME/.promptly/"
-prog_opts=":ahtb:p:"
-prog_exit=0
-
-source "${prog_home}/component.d/git"
-source "${prog_home}/component.d/system"
-
-declare -A prompt
-
-components=("promptchar" "jobcount" "username" "uptime" "longdate" "shortdate_us" "shortdate_uk" \
-"time24" "time" "exitstatus" "exitstatus_char" "pwd" "shortpwd")
-m_cmds=("edit" "help" "show" "version")
-s_cmds=("components" "${m_cmds[@]}" "${components[@]}")
-
-# main usage text
-main="${prog_name} v${prog_vers}\n\nmanage your bash prompt through promptly"
-
-# command usage text
-edit=("edit your bash prompt" "flags: \
-  \n\t-e, --editor    specify an editor to use\n")
-help=("get help with a command or concept" "")
-show=("show your prompt as it would be rendered" "")
-version=("show version information" "")
-
-# status tags
-s_wrn="warn:"
-s_ftl="fatal:"
-s_hnt="hint:"
-
-# error messages
-e_noarg="${s_ftl} option '%s' requires an argument\n"
-e_ivopt="${s_ftl} unknown option '%s'\n"
-e_noman="${s_ftl} no help text for '%s'\n"
-e_noedt="${s_ftl} unrecognised editor\n"
-e_ivsmd="${s_ftl} '%s' is not a known subcommand\n"
-e_ivmmd="${s_ftl} '%s' is not a known command\n
-run '${prog_name} --help' for a list of known commands\n"
-
-usage_end="for help with each command run: \
-  \n\t${prog_name} <command> -h | --help\n"
-
-flags_global="global flags: \
-  \n\t-h, --help      show this screen \
-  \n\t-v, --version   show version information\n"
-
-## usage functions
-
-main_usage() {
-  echo -e "${main}\n \
-    \nusage:\
-    \n\t${prog_name} [options] \
-    \n\t${prog_name} <command> [options] \
-    \n\ncommands:                   \
-    \n\tedit            ${edit}     \
-    \n\thelp            ${help}     \
-    \n\tshow            ${show}     \
-    \n\tversion         ${version}  \n"
-
-  echo -e "${flags_global}"
-  echo -e "${usage_end}"
-
-  exit ${prog_exit}
-}
-
-m_cmd_usage() {
-  eval m_cmd_arr="(\"\${${m_cmd}[@]}\")"
-
-  about="${m_cmd_arr[0]}"
-  flags="${m_cmd_arr[1]}"
-
-  echo -e "${about}\n \
-    \nusage: \
-    \n\t${prog_name} ${m_cmd} [options] \
-    \n\t${prog_name} ${m_cmd} [microservice] [options]\n"
-
-  echo -e "${flags}"
-  echo -e "${flags_global}"
-  echo -e "${usage_end}"
-
-  exit ${prog_exit}
-}
-
-print_version() {
-  echo -e "${prog_name} version ${prog_vers}"
-
-  exit ${prog_exit}
-}
-
-## helper functions
-
-is_m_cmd() {
-  if [[ -z $(printf '%s\n' "${m_cmds[@]}" | grep -w ${1//-}) ]]; then
-    return 1
-  fi
-}
-
-is_m_cmd_set() {
-  if [[ ! ${m_cmd+x} ]]; then
-    return 1
-  fi
-}
-
-set_m_cmd() {
-  if ! is_m_cmd_set; then
-    echo -e "${1}"
-  fi
-}
-
-is_s_cmd() {
-  if [[ -z $(printf '%s\n' "${s_cmds[@]}" | grep -w ${1//-}) ]]; then
-    return 1
-  fi
-}
-
-is_s_cmd_set() {
-  if [[ ! ${s_cmd+x} ]]; then
-    return 1
-  fi
-}
-
-set_s_cmd() {
-  if ! is_s_cmd_set; then
-    echo -e "${1}"
-  fi
-}
-
-is_component() {
-  if [[ -z $(printf '%s\n' "${components[@]}" | grep -w ${1//-}) ]]; then
-    return 1
-  fi
-}
-
-die() {
-  printf "${1}" "${2}" >&2
-
-  if is_m_cmd "${2}" \
-  && [[ ${m_cmd} != "help" ]]; then
-    m_cmd_usage
-  fi
-
-  prog_exit=1
-  exit ${prog_exit}
-}
-
-## prompt parsing functions
-
-parse_any() {
-  echo "${line:$i:1}"
-
-  return 0
-}
-
-parse_esc() {
-  true $((i++))
-  echo ${line:$i:1}
-
-  return 0
-}
-
-parse_cmd() {
-  cmd=${line:$((i+1))}
-  cmd=${cmd%%\)*}
-  echo -e "$(eval cpnt_${cmd} 2>/dev/null)"
-
-  return $((${#cmd}+1))
-}
-
-evaluate() {
-  demo_ps1=""
-  section="L"
-
-  while read -r line; do
-    [[ "${line}" == \#* ]] && continue
-
-    for (( i=0; i<${#line}; i++ )); do
-
-      case "${line:$i:2}" in
-      R:) section="R"; true $((i+=2)) ;;
-      T:) section="T"; true $((i+=2)) ;;
-      L:) section="L"; true $((i+=2)) ;;
-      esac
-
-      case "${section}" in
-      R) case "${line:$i:1}" in
-          \() prompt[r]+="$(parse_cmd)" ;;
-          \\) prompt[r]+="$(parse_esc)" ;;
-           *) prompt[r]+="$(parse_any)" ;;
-         esac ;;
-      T) case "${line:$i:1}" in
-          \() prompt[t]+="$(parse_cmd)" ;;
-          \\) prompt[t]+="$(parse_esc)" ;;
-           *) prompt[t]+="$(parse_any)" ;;
-         esac ;;
-      L) case "${line:$i:1}" in
-          \() prompt[l]+="$(parse_cmd)" ;;
-          \\) prompt[l]+="$(parse_esc)" ;;
-           *) prompt[l]+="$(parse_any)" ;;
-         esac ;;
-      esac
-
-      true $((i+=${?}))
-
-    done
-  done < "${prog_home}/PROMPT_STR"
-}
-
-## main commands
-
-sub_edit() {
-  "${editor:-$EDITOR}" "${prog_home}/PROMPT_STR" 2>/dev/null \
-  || die "${e_noedt}"
-}
-  
-sub_help() {
-  [ -z ${s_cmd} ] && main_usage
-
-  man "promptly${s_cmd}" 2>/dev/null     \
-  || man "promptly-${s_cmd}" 2>/dev/null \
-  || die "${e_noman}" "${s_cmd}"
-}
-
-sub_version() {
-  print_version
-}
-  
-sub_show() {
-  if [[ -f "${prog_home}/PROMPT_STR" ]]; then
-    evaluate 
-
-    echo -e "your prompt is set to:"
-
-    while read -r line; do
-      echo -e "\t${line}"
-    done < "${prog_home}/PROMPT_STR"
-
-    [ ${prompt[l]+_} ] \
-      && echo -e "your left prompt will display as:\n\t${prompt[l]}\n"
-    [ ${prompt[r]+_} ] \
-      && echo -e "your right prompt will display as:\n\t${prompt[r]}\n"
-    [ ${prompt[t]+_} ] \
-      && echo -e "your window title will display as:\n\t${prompt[t]}\n"
-
-  else
-    die "" ""
-  fi
-}
-
-## parse arguments and begin
-
-[[ ${#} -eq 0 ]] && main_usage
+[[ ${#} -eq 0 ]] && cmd="help"
 
 main() {
+  args="${@}"
+
   while [ -n "${1}" ]; do
     case "${1}" in
-      --) shift; break;;
+      --) shift; break ;;
       -*) case "${1}" in
-      -v|--version)   print_version ;;
-      -e|--editor)    if [ ! -z "${2}" ]; then editor="${2}" ; else die "${e_noarg}" "${1}"; fi; shift ;;
-      -h|--help)      if ! is_m_cmd_set;  then main_usage    ; else m_cmd_usage; fi ;;
-      -*)             die "${e_ivopt}" "${1}" ;;
+      -v|--version)   cmd="version"; unset args ;;
+      -h|--help)      cmd="help";    unset args ;;
     esac ;;
 
-    *) if   ! is_m_cmd_set  && is_m_cmd "${1}"; then m_cmd=$(set_m_cmd "${1}")
-       elif ! is_m_cmd_set; then die    "${e_ivmmd}" "${1}"
-       elif ! is_s_cmd_set  && is_s_cmd "${1}"; then s_cmd=$(set_s_cmd "${1}")
-       elif ! is_s_cmd_set; then die    "${e_ivsmd}" "${1}"
- 
-       else   die "${e_ivopt}" "${1}"; fi ;;
+       *) [ -z "${cmd}" ] && cmd="${1}" ;;
 
     esac
     shift
 
   done
 
-  if ! is_m_cmd_set; then main_usage; fi
-
-  sub_"${m_cmd}"
+  if [ -f "${PROMPTLY_HOME}/builtin/promptly-${cmd}" ]; then
+    "${PROMPTLY_HOME}/builtin/promptly-${cmd}" "${args}"
+  elif type "promptly-${cmd}" &>/dev/null; then
+     "promptly-${cmd}" "${args}"
+  else 
+     die "fatal: '%s' is not a promptly command. \n\nsee 'promptly help -a'\n"
+  fi
 }
 
 main "${@}"
 
-exit ${prog_exit}
+exit ${?}
 
