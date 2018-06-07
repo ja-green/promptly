@@ -31,32 +31,40 @@
 ##     $ promptly help git_status
 ##
 
-[[ ${#} -eq 0 ]] && cmd="help"
+die() {
+  printf "${1}" "${2}" >&2
+
+  exit 1
+}
 
 main() {
-  args="${@}"
+  argv=""; argc=${#}
 
+  [[ ${argc} -eq 0 ]] && cmd="help"
+  
   while [ -n "${1}" ]; do
     case "${1}" in
       --) shift; break ;;
       -*) case "${1}" in
-      -v|--version)   cmd="version"; unset args ;;
-      -h|--help)      cmd="help";    unset args ;;
+      -v|--version)  [[ ${argc} -eq 1 ]] && cmd="version" || argv+="${1} " ;;
+      -h|--help)     [[ ${argc} -eq 1 ]] && cmd="help"    || argv+="${1} " ;;
+      -*)            argv+="${1} "
     esac ;;
 
-       *) [ -z "${cmd}" ] && cmd="${1}" ;;
+       *) [ -z "${cmd}" ] && cmd="${1}" || argv+="${1} " ;;
 
     esac
     shift
 
   done
 
-  if [ -f "${PROMPTLY_HOME}/builtin/promptly-${cmd}" ]; then
-    "${PROMPTLY_HOME}/builtin/promptly-${cmd}" "${args}"
+  if [ -f "/usr/lib/promptly/promptly-${cmd}" ]; then
+    source "/usr/lib/promptly/promptly-${cmd}" "${argv}"
   elif type "promptly-${cmd}" &>/dev/null; then
-     "promptly-${cmd}" "${args}"
+    source "promptly-${cmd}" "${argv}"
   else 
-     die "fatal: '%s' is not a promptly command. \n\nsee 'promptly help -a'\n"
+     die "fatal: '%s' is not a promptly command.\
+          \n\nsee 'promptly help -a' for a list of all available commands\n" "${cmd}"
   fi
 }
 

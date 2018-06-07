@@ -2,6 +2,8 @@
 
 usage() {
   echo -e "${1}"
+
+  exit 0
 }
 
 die() {
@@ -13,57 +15,57 @@ die() {
 ## promptly-show
 
 show_usage="\
-usage:                                 \n
-  promply show [options]               \n
-                                       \n
-options:                               \n
-  -l, --left    show left prompt only  \n
-  -r, --right   show right prompt only \n
-  -t, --title   show window title only \n
-  -h, --help    show this help screen  \n"
+usage:
+  promply show [options]
+
+options:
+  -a, --all     show all active prompt sections
+  -l, --left    show left prompt
+  -r, --right   show right prompt
+  -t, --title   show window title
+  -h, --help    show this help screen
+
+see 'promptly help show' for more information"
 
 show_left() {
-  echo -e "your left prompt will display as: \
-    \n\t$(promptly parse-prompt --left)\n"
+  prompt="$(promptly parse-index --left)"
+  [ ! -z "${prompt}" ] || [ ! -z "${show_l}" ] || [ ! -z "${show_a}" ] \
+    && echo -e "your left prompt will display as:\n  ${prompt}\n"
 }
 
 show_right() {
-  echo -e "your right prompt will display as: \
-    \n\t$(promptly parse-prompt --right)\n"
+  prompt="$(promptly parse-index --right)"   
+  [ ! -z "${prompt}" ] || [ ! -z "${show_r}" ] || [ ! -z "${show_a}" ] \
+    && echo -e "your right prompt will display as:\n  ${prompt}\n"
 }
 
 show_title() {
-  echo -e "your window title will display as: \
-    \n\t$(promptly parse-prompt --title)\n"
+  prompt="$(promptly parse-index --title)"
+  [ ! -z "${prompt}" ] || [ ! -z "${show_t}" ] || [ ! -z "${show_a}" ] \
+    && echo -e "your window title will display as:\n  ${prompt}\n"
 }
 
 cmd_show() {
-  if [[ -f "${PROMPTLY_HOME}/PROMPT_STR" ]]; then
+  if [[ -f "${PROMPTLY_HOME}/index" ]]; then
+
+    declare -A show_prompt=(
+      [l]="$(show_left)"
+      [r]="$(show_right)"
+      [t]="$(show_title)"
+    )
 
     echo -e "your prompt is set to:"
 
     while read -r line; do
-      echo -e "\t${line}"
-    done < "${PROMPTLY_HOME}/PROMPT_STR"
+      echo -e "  ${line}"
+    done < "${PROMPTLY_HOME}/index"
 
-    if   [ -z ${l_only} ]; then
-      echo -e "$(show_left)"
-    elif [ -z ${r_only} ]; then
-      echo -e "$(show_right)"
-    elif [ -z ${t_only} ]; then
-      echo -e "$(show_title)"
-
-    else
-      [ ${prompt[l]+_} ] \
-        && echo -e "$(show_left)"
-      [ ${prompt[r]+_} ] \
-        && echo -e "$(show_right)"
-      [ ${prompt[t]+_} ] \
-        && echo -e "$(show_title)"
-    fi
+    echo -e "${show_prompt[l]}"
+    echo -e "${show_prompt[r]}"
+    echo -e "${show_prompt[t]}"
 
   else
-    die "fatal: 'PROMPT_STR' not found\n"
+    die "fatal: prompt index not found\n"
   fi
 }
 
@@ -72,10 +74,11 @@ main() {
     case "${1}" in
     --) shift; break;;
     -*) case "${1}" in
-    -l|--left)  l_only=1 ;;
-    -r|--right) r_only=1 ;;
-    -t|--title) t_only=1 ;;
-    -h|--help)  usage ${show_usage} ;;
+    -l|--left)  show_l=1 ;;
+    -r|--right) show_r=1 ;;
+    -t|--title) show_t=1 ;;
+    -a|--all)   show_a=1 ;;
+    -h|--help)  usage "${show_usage}" ;;
     -*)         die "fatal: unknown option '%s'\n" "${1}" ;;
     esac ;;
 
@@ -89,7 +92,7 @@ main() {
   [ -z ${PROMPTLY_HOME} ] \
     && die "fatal: environment variable 'PROMPTLY_HOME' not set\n"
 
-  echo -e "$(cmd_show)"
+  cmd_show
 }
 
 main ${@}

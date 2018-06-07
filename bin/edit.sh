@@ -2,6 +2,8 @@
 
 usage() {
   echo -e "${1}"
+
+  exit 0
 }
 
 die() {
@@ -13,29 +15,31 @@ die() {
 ## edit
 
 edit_usage="\
-usage:                                   \n
-  promptly edit [options]                \n
-                                         \n
-options:                                 \n
-  -e, --editor  specify an editor ti use \n
-  -h, --help    show this help screen    \n"
+usage:
+  promptly edit [options]
+
+options:
+  -e, --editor  specify an editor to use
+  -h, --help    show this help screen
+
+see 'promptly help edit' for more information"
 
 cmd_edit() {
-  if [[ -f "${PROMPTLY_HOME}/PROMPT_STR" ]]; then
+  if [[ -f "${PROMPTLY_HOME}/index" ]]; then
 
-    if [ ! -z ${EDITOR} ]; then
-      ${EDITOR} "${PROMPTLY_HOME}/PROMPT_STR"
-    elif [ ! -z "${editor}" ]; then
-      ${editor} "${PROMPTLY_HOME}/PROMPT_STR"
+    if [ ! -z "${editor}" ]; then
+      "${editor}" "${PROMPTLY_HOME}/index"
+    elif [ ! -z "${EDITOR}" ]; then
+      "${EDITOR}" "${PROMPTLY_HOME}/index"
     elif type nano; then
-      nano "${PROMPTLY_HOME}/PROMPT_STR"
+      nano "${PROMPTLY_HOME}/index"
 
     else
-      die "fatal: no editor specified"
+      die "fatal: no editor specified\n"
     fi
 
   else
-    die "fatal: 'PROMPT_STR' not found\n"
+    die "fatal: index not found\n"
   fi
 }
 
@@ -44,11 +48,9 @@ main() {
     case "${1}" in
     --) shift; break;;
     -*) case "${1}" in
-    -l|--left)  l_only=1 ;;
-    -r|--right) r_only=1 ;;
-    -t|--title) t_only=1 ;;
-    -h|--help)  usage ${parse_prompt_usage} ;;
-    -*)         die "fatal: unknown option '%s'\n" "${1}" ;;
+    -e|--editor)  [ ! -z "${2}" ] && editor="${2}"; shift || die "fatal: option '%s' requires an argument" "${1}" ;;
+    -h|--help)    usage "${edit_usage}" ;;
+    -*)           die "fatal: unknown option '%s'\n" "${1}" ;;
     esac ;;
 
     *) die "fatal: unknown option '%s'\n" "${1}" ;;
@@ -61,7 +63,7 @@ main() {
   [ -z ${PROMPTLY_HOME} ] \
     && die "fatal: environment variable 'PROMPTLY_HOME' not set\n"
 
-  echo -e "$(cmd_edit)"
+  cmd_edit
 }
 
 main ${@}
