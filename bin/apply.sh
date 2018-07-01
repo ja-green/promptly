@@ -21,7 +21,14 @@ usage:
 see 'promptly help apply' for more information"
 
 cmd_apply() {
-  cat "${PROMPTLY_HOME}/index" > "${PROMPTLY_HOME}/active"
+  prompt_l="$(promptly parse-index --no-resolve --left)"
+  prompt_r="$(promptly parse-index --no-resolve --right)"
+  prompt_t="$(promptly parse-index --no-resolve --title)"
+
+  # for each line, parse normally and for components do:
+  # declare -f ${component} | tail -n +3 | head -n -1 | tr -d '\n' | awk '{$1=$1};1' 
+
+  echo -e "${prompt_l}\n${prompt_r}\n${prompt_t}" > "${PROMPTLY_HOME}/active"
 }
 
 main() {
@@ -42,6 +49,8 @@ main() {
 
   [ -z ${PROMPTLY_HOME} ] \
     && die "fatal: environment variable 'PROMPTLY_HOME' not set\n"
+
+  source "/usr/lib/promptly/promptly-parse-config"
 
   cmd_apply
 }
