@@ -63,6 +63,8 @@ main() {
   [ -z ${PROMPTLY_HOME} ] \
     && die "fatal: environment variable 'PROMPTLY_HOME' not set\n"
 
+  source "/usr/lib/promptly/promptly-parse-config"
+
   cmd_edit
 }
 

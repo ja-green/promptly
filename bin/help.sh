@@ -112,6 +112,8 @@ main() {
 
   done
 
+  source "/usr/lib/promptly/promptly-parse-config"
+
   cmd_help
 }
 
