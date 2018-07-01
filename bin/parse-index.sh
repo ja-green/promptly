@@ -12,9 +12,6 @@ die() {
 
 ## parse-index
 
-source "/usr/lib/promptly/component.d/git"
-source "/usr/lib/promptly/component.d/system"
-
 parse_index_usage="\
 usage:
   promptly parse-index <options>
@@ -44,21 +41,24 @@ parse_esc() {
 parse_cmd() {
   cmd=${line:$((i+1))}
   cmd=${cmd%%\)*}
-  echo -e "$(eval cpnt_${cmd} 2>/dev/null)"
+
+  [ -z "${no_resolve}" ] \
+    && echo -e "$(eval cpnt_${cmd} 2>/dev/null)" \
+    || echo -e "(cpnt_${cmd})"
 
   return $((${#cmd}+1))
 }
 
 cmd_parse_index() {
   [ ! -f "${PROMPTLY_HOME}/index" ] \
-    && die "fatal: cannot find index prompt file\n"
+    && die "fatal: cannot find index prompt file_in '${PROMPTLY_HOME}'\n"
 
   demo_ps1=""
   section="L"
 
   declare -A prompt
 
-  while read -r line; do
+  while IFS= read -r line; do
     [[ "${line}" == \#* ]] && continue
 
     for (( i=0; i<${#line}; i++ )); do
@@ -116,12 +116,13 @@ main() {
     case "${1}" in
     --) shift; break;;
     -*) case "${1}" in
-    -l|--left)   l_only=1 ;;
-    -r|--right)  r_only=1 ;;
-    -t|--title)  t_only=1 ;;
-    -f|--format) format=1 ;;
-    -h|--help)   usage "${parse_index_usage}" ;;
-    -*)          die "fatal: unknown option '%s'\n" "${1}" ;;
+    -l|--left)       l_only=1 ;;
+    -r|--right)      r_only=1 ;;
+    -t|--title)      t_only=1 ;;
+    -f|--format)     format=1 ;;
+    -n|--no-resolve) no_resolve=1 ;;
+    -h|--help)       usage "${parse_index_usage}" ;;
+    -*)              die "fatal: unknown option '%s'\n" "${1}" ;;
     esac ;;
 
     *) die "fatal: unknown option '%s'\n" "${1}" ;;
@@ -130,6 +131,9 @@ main() {
     shift
 
   done
+
+  source "/usr/lib/promptly/component.d/git"
+  source "/usr/lib/promptly/component.d/system"
 
   cmd_parse_index
 }

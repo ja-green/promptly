@@ -12,9 +12,6 @@ die() {
 
 ## parse-active
 
-source "/usr/lib/promptly/component.d/git"
-source "/usr/lib/promptly/component.d/system"
-
 parse_active_usage="\
 usage:
   promptly parse-active <options>
@@ -44,69 +41,82 @@ parse_esc() {
 parse_cmd() {
   cmd=${line:$((i+1))}
   cmd=${cmd%%\)*}
-  echo -e "$(eval cpnt_${cmd} 2>/dev/null)"
+  
+  typeset -n section="${cmd#cpnt_}"
+  
+  printf "${section[background]}${section[foreground]}"
+  printf "$(eval "${cmd}" 2>/dev/null)"
+  printf "\x01$(tput sgr0)\x02"
 
   return $((${#cmd}+1))
+}
+
+esclen() {
+  cmd=${line:$((i+1))}
+  cmd=${cmd%%\)*}
+ 
+  typeset -n section="${cmd#cpnt_}"
+  echo -e ${section[compensate]:-0}
 }
 
 cmd_parse_active() {
   [ ! -f "${PROMPTLY_HOME}/active" ] \
     && die "fatal: cannot find active prompt file\n"
 
-  demo_ps1=""
-  section="L"
+  # TODO to make function parsing fast - try declare -f $func; remove declaration; replace all newlines with nothing. this means you have to code semicolons in components
+  # see promptly-apply - semicolons seem to be accounted for automatically
+  
+  prompt_l=""
+  prompt_r=""
+  prompt_t=""
+  alignment=-1
 
-  declare -A prompt
+  line="$(sed '1q;d' ${PROMPTLY_HOME}/active)"
+  for (( i=0; i<${#line}; i++ )); do
+    case "${line:$i:1}" in
+    \() prompt_l+="$(parse_cmd)" ;;
+    \\) prompt_l+="$(parse_esc)" ;;
+     *) prompt_l+="$(parse_any)" ;;
+    esac
 
-  while read -r line; do
-    [[ "${line}" == \#* ]] && continue
+    true $((i+=${?}))
+  done
 
-    for (( i=0; i<${#line}; i++ )); do
+  line="$(sed '2q;d' ${PROMPTLY_HOME}/active)"
+  for (( i=0; i<${#line}; i++ )); do
+    case "${line:$i:1}" in
+    \() true $((alignment+=$(esclen)))
+        prompt_r+="$(parse_cmd)" ;;
+    \\) prompt_r+="$(parse_esc)" ;;
+     *) prompt_r+="$(parse_any)" ;;
+    esac 
 
-      case "${line:$i:2}" in
-      T:) section="T"; true $((i+=2)) ;;
-      L:) section="L"; true $((i+=2)) ;;
-      R:) section="R"; true $((i+=2)) ;;
-      esac
-
-      case "${section}" in
-      T) case "${line:$i:1}" in
-          \() prompt[t]+="$(parse_cmd)" ;;
-          \\) prompt[t]+="$(parse_esc)" ;;
-           *) prompt[t]+="$(parse_any)" ;;
-         esac ;;
-      L) case "${line:$i:1}" in
-          \() prompt[l]+="$(parse_cmd)" ;;
-          \\) prompt[l]+="$(parse_esc)" ;;
-           *) prompt[l]+="$(parse_any)" ;;
-         esac ;;
-      R) case "${line:$i:1}" in
-          \() prompt[r]+="$(parse_cmd)" ;;
-          \\) prompt[r]+="$(parse_esc)" ;;
-           *) prompt[r]+="$(parse_any)" ;;
-         esac ;;
-      esac
-
-      true $((i+=${?}))
-
-    done
-  done < "${PROMPTLY_HOME}/active"
+    true $((i+=${?}))
+  done
+ 
+  line="$(sed '3q;d' ${PROMPTLY_HOME}/active)"
+  for (( i=0; i<${#line}; i++ )); do
+    case "${line:$i:1}" in
+    \() prompt_t+="$(parse_cmd)" ;;
+    \\) prompt_t+="$(parse_esc)" ;;
+     *) prompt_t+="$(parse_any)" ;;
+    esac 
+    
+    true $((i+=${?}))
+  done
 
   if [ ! -z "${format}" ]; then
-    [ ${prompt[t]+_} ] && t_p="${prompt[t]}"
-    [ ${prompt[l]+_} ] && l_p="${prompt[l]}"
-    [ ${prompt[r]+_} ] && r_p="${prompt[r]}"
-
-    printf "$(tput sc)%$(($(tput cols)-1))s$(tput rc)%s\033]0;%s\007" \
-            "${r_p}" "${l_p}" "${t_p}"
+    [ ! -z "${prompt_r}" ] && printf "\x01$(tput sc)%$(($(tput cols)+${alignment}))s$(tput rc)\x02" "${prompt_r}"
+    [ ! -z "${prompt_l}" ] && printf "%s" "${prompt_l}"
+    [ ! -z "${prompt_t}" ] && printf "\x01\033]0;%s\007\x02" "${prompt_t}"
 
   else
     if   [ ! -z "${t_only}" ]; then
-      echo -e "${prompt[t]}"
+      echo -e "${prompt_t}"
     elif [ ! -z "${l_only}" ]; then
-      echo -e "${prompt[l]}"
+      echo -e "${prompt_l}"
     elif [ ! -z "${r_only}" ]; then
-      echo -e "${prompt[r]}"
+      echo -e "${prompt_r}"
     fi
   fi
 }
@@ -130,6 +140,10 @@ main() {
     shift
 
   done
+
+  source "/usr/lib/promptly/component.d/git"
+  source "/usr/lib/promptly/component.d/system"
+  source "/usr/lib/promptly/promptly-parse-config"
 
   cmd_parse_active
 }
