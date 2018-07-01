@@ -10,17 +10,18 @@
 #
 # note that a 'git fetch' will be needed to give accurate results
 cpnt_git_upstream() {
-    __init_git_info || return
+  __init_git_info || return
 
-    count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
-    case "${count}" in
-                "") u="none"       ;;
-	"0	0") u="up-to-date" ;;
-	"0	"*) u="ahead"      ;;
-	*"	0") u="behind"     ;;
-		 *) u="diverged"   ;;
-    esac
-    echo "${u}"
+  count="$(git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null)"
+  case "${count}" in
+        "") u="${git_upstream[no_upstream_icon]}" ;;
+  "0	0") u="${git_upstream[equal_icon]}"       ;;
+  "0	"*) u="${git_upstream[ahead_icon]}"       ;;
+  *"	0") u="${git_upstream[behind_icon]}"      ;;
+	 *) u="${git_upstream[diverged_icon]}"    ;;
+  esac
+    
+  printf "${git_uptream[prefix]}${u}${git_upstream[suffix]}"
 }
 
 # git branch name
@@ -29,23 +30,9 @@ cpnt_git_upstream() {
 # current git repository. if HEAD is in a detached state it
 # returns the abbreviated commit hash prefixed with a colon (:)
 cpnt_git_branch() {
-    __init_git_info || return
+  __init_git_info || return
 
-    echo "${branch}"
-}
-
-cpnt_git_pwd() {
-    __init_git_info || return
-
-    if [ "true" = "${bare_repo}" ]; then
-        echo -e "${PWD}"
-    elif [ "true" = "${inside_gitdir}" ]; then
-        echo -e "${toplevel}${gitdir}${gitdir_prefix}"
-    elif [ "true" = "${inside_worktree}" ]; then
-        echo -e "${toplevel}${prefix}"
-    else
-        echo -e "${PWD}"
-    fi
+  printf "${git_branch[prefix]}${branch}${git_branch[suffix]}"
 }
 
 # git upstream information including commit count
@@ -73,21 +60,21 @@ cpnt_git_upstreamcount() {
 # returns the state of the git branch. ie. whether the branch
 # is rebasing, merging, cherry-picking, reverting or bisecting
 cpnt_git_state() {
-    __init_git_info || return
+  __init_git_info || return
 
-    if   [ -d "${gitdir}/rebase-merge" ] || [ -d "${gitdir}/rebase-apply" ]; then
-        s="rebasing"
-    elif [ -f "${gitdir}/MERGE_HEAD" ]; then
-	s="merging"
-    elif [ -f "${gitdir}/CHERRY_PICK_HEAD" ]; then
-	s="cherry-picking"
-    elif [ -f "$g/REVERT_HEAD" ]; then
-	s="reverting"
-    elif [ -f "$g/BISECT_LOG" ]; then
-	s="bisecting"
-    fi
+  if   [ -d "${gitdir}/rebase-merge" ] || [ -d "${gitdir}/rebase-apply" ]; then
+    state="${git_state[rebase_icon]}"
+  elif [ -f "${gitdir}/MERGE_HEAD" ]; then
+    state="${git_state[merge_icon]}"
+  elif [ -f "${gitdir}/CHERRY_PICK_HEAD" ]; then
+    state="${git_state[cherry_pick_icon]}"
+  elif [ -f "$g/REVERT_HEAD" ]; then
+    state="${git_state[revert_icon]}"
+  elif [ -f "$g/BISECT_LOG" ]; then
+    state="${git_state[bisect_icon]}"
+  fi
 
-    echo "${s}"
+  printf "${git_state[prefix]}${state}${git_state[suffix]}"
 }
 
 # git repository commit count
@@ -95,9 +82,9 @@ cpnt_git_state() {
 # returns the number of commits made on the current repository
 # formatted as a string
 cpnt_git_commit_count() {
-    __init_git_info || return
+  __init_git_info || return
 
-    echo "$(git log --pretty=oneline | wc -l)"
+  printf "${git_commit_count[prefix]}$(git log --pretty=oneline | wc -l)${git_commit_count[suffix]}" 
 }
 
 # git working tree status
@@ -117,23 +104,25 @@ cpnt_git_commit_count() {
 #    R - renamed
 #    L - clean
 cpnt_git_status() {
-    __init_git_info || return
+  __init_git_info || return
 
-    git status --porcelain | (
-      while read line; do
-          case "${line//[[:space:]]/}" in
-            'UU'*) u="U" ;;
-             'M'*) m="M" ;;
-             'D'*) d="D" ;;
-            '??'*) t="?" ;;
-             'A'*) a="A" ;;
-             'C'*) c="C" ;;
-             'R'*) r="R" ;;
-          esac
-      done
+  git status --porcelain | (
+    while read line; do
+      case "${line//[[:space:]]/}" in
+      'UU'*) u="${git_status[conflict_icon]}"  ;;
+      'M'*)  m="${git_status[modified_icon]}"  ;;
+      'D'*)  d="${git_status[deleted_iocn]}"   ;;
+      '??'*) t="${git_status[untracked_icon]}" ;;
+      'A'*)  a="${git_status[added_icon]}"     ;;
+      'C'*)  c="${git_status[copied_icon]}"    ;;
+      'R'*)  r="${git_status[renamed_icon]}"   ;;
+      esac
+    done
 
-      b="${u}${m}${d}${t}${a}${c}${r}"
-      [ -n "${b}" ] && echo "${b}" || echo "L" 
+    b="${u}${m}${d}${t}${a}${c}${r}"
+    [ -n "${b}" ] \
+      && printf "${git_status[prefix]}${b}${git_status[suffix]}" \
+      || printf "${git_status[prefix]}${git_status[clean_icon]}${git_status[suffix]}" 
   )
 }
 
@@ -174,7 +163,7 @@ __init_git_info() {
     --is-bare-repository --is-inside-work-tree               \
     --show-superproject-working-tree 2>/dev/null)"
 
-  [[ "${?}" != "0" ]] && return
+  [[ "${?}" != "0" ]] && return 1
 
   parent_repo="${repo_info##*$'\n'}"
   if [[ "true" != "${parent_repo}" ]] && [[ "false" != "${parent_repo}" ]] && [[ "" != "${parent_repo}" ]]; then
@@ -233,4 +222,3 @@ __init_git_info_old() {
 
     return 0
 }
-
