@@ -49,6 +49,13 @@ rename_builtins() {
   done
 }
 
+inject_imports() {
+  for cmd in "/usr/lib/promptly"/*; do
+    [ ! -d "${cmd}" ] \
+      && printf "%s\n\n%s" "$(cat ${libs}/usage.lib.sh)" "$(cat ${cmd})" > "${cmd}"
+  done
+}
+
 copy_components() {
   cp -r "${cpnt}" "/usr/lib/promptly"
 }
@@ -86,6 +93,7 @@ main() {
   check_priv
   ensure_dirs
   rename_builtins
+  inject_imports
   copy_components
   copy_main
   inject_version
@@ -94,4 +102,3 @@ main() {
 }
 
 main
-

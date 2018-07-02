@@ -111,7 +111,7 @@ cpnt_git_status() {
       case "${line//[[:space:]]/}" in
       'UU'*) u="${git_status[conflict_icon]}"  ;;
       'M'*)  m="${git_status[modified_icon]}"  ;;
-      'D'*)  d="${git_status[deleted_iocn]}"   ;;
+      'D'*)  d="${git_status[deleted_icon]}"   ;;
       '??'*) t="${git_status[untracked_icon]}" ;;
       'A'*)  a="${git_status[added_icon]}"     ;;
       'C'*)  c="${git_status[copied_icon]}"    ;;

@@ -1,28 +1,4 @@
-## imported (usage.lib.sh)
-
-usage() {
-  echo -e "${1}"
-
-  exit 0
-}
-
-warn() {
-  printf "warn: ${1}" "${2}" >&2
-}
-
-error() {
-  printf "error: ${1}" "${2}" >&2
-
-  exit 0
-}
-
-die() {
-  printf "fatal: ${1}" "${2}" >&2
-
-  exit 1
-}
-
-## promptly-config
+## promptly-parse-config
 
 help_usage="\
 usage:
@@ -46,13 +22,13 @@ from_hex() {
 parse_std() {
   validate \
     && eval "${section}[${key}]=\"${val}\"" \
-    || config_err+="  invalid value for key '${key}, line ${nr}\n"
+    || config_err+="  invalid value for key '${key}', line ${nr}\n"
 }
 
 parse_opt() {
   validate "true|false" \
     && eval "${section}[${key}]=\"${val}\"" \
-    || config_err+="  invalid value for key '${key}, line ${nr}\n"
+    || config_err+="  invalid value for key '${key}', line ${nr}\n"
 }
 
 parse_clr() {
@@ -72,8 +48,7 @@ parse_clr() {
 
   validate "[a-fA-F0-9]{6}" \
     && eval "${section}[${key}]=\"${tput_hex}\"" \
-    || config_err+="  invalid value for key '${key}, line ${nr}\n"
-
+    || config_err+="  invalid hex color for key '${key}', line ${nr}\n"
 
   [ "${key}" = "background" ] || [ "${key}" = "foreground" ] \
     && return
@@ -265,7 +240,12 @@ parse_config() {
   done
 
   if (( ${#config_err[@]} > 0 )); then
-    die "there were errors parsing the config file at '${PROMPTLY_HOME}/config':\n${config_err}"
+    warn "there were errors parsing the config file at '${PROMPTLY_HOME}/config':\n${config_err} \
+          \nreverting to previous configuration\n"
+
+    [ -f "/dev/shm/promptly/config_cache" ] \
+      && eval "$(cat /dev/shm/promptly/config_cache)" \
+      || die "cannot find any previous configuration\n"
   fi
 }
 
@@ -317,4 +297,3 @@ main() {
 }
 
 main ${@}
-

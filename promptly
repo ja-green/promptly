@@ -32,7 +32,7 @@
 ##
 
 die() {
-  printf "${1}" "${2}" >&2
+  printf "fatal: ${1}" "${2}" >&2
 
   exit 1
 }
@@ -58,12 +58,15 @@ main() {
 
   done
 
+  [ -z "${PROMPTLY_HOME}" ] \
+    && die "environment variable 'PROMPTLY_HOME' not set"
+
   if [ -f "/usr/lib/promptly/promptly-${cmd}" ]; then
     source "/usr/lib/promptly/promptly-${cmd}" "${argv}"
   elif type "promptly-${cmd}" &>/dev/null; then
     source "promptly-${cmd}" "${argv}"
   else 
-     die "fatal: '%s' is not a promptly command.\
+     die "'%s' is not a promptly command.\
           \n\nsee 'promptly help -a' for a list of all available commands\n" "${cmd}"
   fi
 }
@@ -71,4 +74,3 @@ main() {
 main "${@}"
 
 exit ${?}
-

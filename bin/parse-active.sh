@@ -1,16 +1,4 @@
-## imported
-
-usage() {
-  echo -e "${1}"
-}
-
-die() {
-  printf "${1}" "${2}" >&2
-
-  exit 1 
-}
-
-## parse-active
+## promptly-parse-active
 
 parse_active_usage="\
 usage:
@@ -61,7 +49,7 @@ esclen() {
 
 cmd_parse_active() {
   [ ! -f "${PROMPTLY_HOME}/active" ] \
-    && die "fatal: cannot find active prompt file\n"
+    && die "cannot find active prompt file\n"
 
   # TODO to make function parsing fast - try declare -f $func; remove declaration; replace all newlines with nothing. this means you have to code semicolons in components
   # see promptly-apply - semicolons seem to be accounted for automatically
@@ -131,10 +119,10 @@ main() {
     -t|--title)  t_only=1 ;;
     -f|--format) format=1 ;;
     -h|--help)   usage "${parse_apply_usage}" ;;
-    -*)          die "fatal: unknown option '%s'\n" "${1}" ;;
+    -*)          die "unknown option '%s'\n" "${1}" ;;
     esac ;;
 
-    *) die "fatal: unknown option '%s'\n" "${1}" ;;
+    *) die "unknown option '%s'\n" "${1}" ;;
 
     esac
     shift
@@ -149,4 +137,3 @@ main() {
 }
 
 main ${@}
-

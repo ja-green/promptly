@@ -1,27 +1,16 @@
-## imported
-
-usage() {
-  echo -e "${1}"
-}
-
-die() {
-  printf "${1}" "${2}" >&2
-
-  exit 1 
-}
-
-## parse-index
+## promptly-parse-index
 
 parse_index_usage="\
 usage:
   promptly parse-index <options>
 
 options:
-  -l, --left    parse left prompt only
-  -r, --right   parse right prompt only
-  -t, --title   parse window title only
-  -f, --format  format prompt for PS1
-  -h, --help    show this help screen
+  -l, --left       parse left prompt only
+  -r, --right      parse right prompt only
+  -t, --title      parse window title only
+  -f, --format     format prompt for PS1
+  -n, --no-resolve do not resolve components
+  -h, --help       show this help screen
 
 see 'promptly help parse-index' for more information"
 
@@ -51,7 +40,7 @@ parse_cmd() {
 
 cmd_parse_index() {
   [ ! -f "${PROMPTLY_HOME}/index" ] \
-    && die "fatal: cannot find index prompt file_in '${PROMPTLY_HOME}'\n"
+    && die "cannot find index prompt file_in '${PROMPTLY_HOME}'\n"
 
   demo_ps1=""
   section="L"
@@ -122,10 +111,10 @@ main() {
     -f|--format)     format=1 ;;
     -n|--no-resolve) no_resolve=1 ;;
     -h|--help)       usage "${parse_index_usage}" ;;
-    -*)              die "fatal: unknown option '%s'\n" "${1}" ;;
+    -*)              die "unknown option '%s'\n" "${1}" ;;
     esac ;;
 
-    *) die "fatal: unknown option '%s'\n" "${1}" ;;
+    *) die "unknown option '%s'\n" "${1}" ;;
 
     esac
     shift
@@ -139,4 +128,3 @@ main() {
 }
 
 main ${@}
-

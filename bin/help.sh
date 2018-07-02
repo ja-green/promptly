@@ -1,18 +1,4 @@
-## imported
-
-usage() {
-  echo -e "${1}"
-
-  exit 0
-}
-
-die() {
-  printf "${1}" "${2}" >&2
-
-  exit 1
-}
-
-## help
+## promptly-help
 
 main_usage="\
 promptly - customise your bash prompt
@@ -83,14 +69,14 @@ cmd_help() {
     list_commands
   elif [ ! -z "${man}" ]; then
     man promptly 2>/dev/null \
-    || die "fatal: no help text for promptly\n"
+    || error "no help text for promptly\n"
   elif [ -z "${sub_cmd}" ]; then
     usage "${main_usage}"
 
   else
     man "promptly${sub_cmd}" 2>/dev/null     \
     || man "promptly-${sub_cmd}" 2>/dev/null \
-    || die "fatal: no help text for '%s'\n" "${sub_cmd}"
+    || error "no help text for '%s'\n" "${sub_cmd}"
   fi
 }
 
@@ -102,7 +88,7 @@ main() {
     -a|--all)   all=1 ;;
     -m|--man)   man=1 ;;
     -h|--help)  usage "${help_usage}" ;;
-    -*)         die "fatal: unknown option '%s'\n" "${1}" ;;
+    -*)         die "unknown option '%s'\n" "${1}" ;;
     esac ;;
 
     *) [ -z "${sub_cmd}" ] && sub_cmd="${1}" ;;
@@ -118,4 +104,3 @@ main() {
 }
 
 main ${@}
-
