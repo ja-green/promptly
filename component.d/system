@@ -1,15 +1,13 @@
 #!/bin/bash
 
-source "${PWD}/config"
-
 # prompt character
 #
 # returns a '#' if the user is logged in
 # as root, a '$' otherwise
 cpnt_promptchar() {
-    [ $(id -u) = 0 ] \
-      && echo "${promptchar[prefix]} ${promptchar[root_icon]} ${promptchar[suffix]}" \
-      || echo "${promptchar[prefix]} ${promptchar[user_icon]} ${promptchar[suffix]}"
+  [ $(id -u) = 0 ] \
+    && printf "${promptchar[prefix]}${promptchar[root_icon]}${promptchar[suffix]}" \
+    || printf "${promptchar[prefix]}${promptchar[user_icon]}${promptchar[suffix]}"
 }
 
 # current background job count
@@ -17,7 +15,7 @@ cpnt_promptchar() {
 # returns the amount of currently running
 # background jobs
 cpnt_jobcount() {
-    echo "$(jobs -p | wc -l)"
+  printf "${jobcount[prefix]}$(jobs -p | wc -l)${jobcount[suffix]}"
 }
 
 # username
@@ -25,7 +23,14 @@ cpnt_jobcount() {
 # returns the username of the current user
 # of the shell session
 cpnt_username() {
-    echo "$(whoami)"
+  printf "${username[prefix]}${USER}${username[suffix]}"
+}
+
+# hostname
+#
+# returns the hostname of the current shell session
+cpnt_hostname() {
+  printf "${hostname[prefix]}${HOSTNAME}${hostname[suffix]}"
 }
 
 # system uptime
@@ -33,48 +38,24 @@ cpnt_username() {
 # returns a formatted string representing
 # the amount of time the system has been active
 cpnt_uptime() {
-    echo "$(uptime -p):3"
+  printf "${uptime[prefix]}$(uptime -p | cut -d " " -f2-)${uptime[suffix]}"
 }
 
-# formatted long date
-#
-# returns a formatted string representing
-# the current date in the form ''
-cpnt_longdate() {
-    echo "$(date)"
-}
-
-# short date (US format)
+# date
 #
 # returns a formatted string representing
 # the current date in the US form 'MM/DD/YYYY'
-cpnt_shortdate_us() {
-    echo "$(date +%D)"
+cpnt_date() {
+  printf "${date[prefix]}$(date +${date[format]})${date[suffix]}"
 }
 
-# short date (UK format)
-#
-# returns a formatted string representing
-# the current date in the UK form 'DD/MM/YYYY'
-cpnt_shortdate_uk() {
-    echo "$(date +%d/%m/%Y)"
-}
-
-# 24 hour time
+# time
 #
 # returns a formatted string representing
 # the current time in military (24 hour) format
 # with am / pm appended depending on the time
 cpnt_time() {
-    echo "$(date +%X)"
-}
-
-# 12 hour time
-#
-# returns a formatted string representing
-# the current time in standard (12 hour) format
-cpnt_time24() {
-    echo "$(date "+%I:%M:%S %#p")"
+  printf "${time[prefix]}$(date +${time[format]})${time[prefix]}"
 }
 
 # exit code of last command ran
@@ -82,30 +63,30 @@ cpnt_time24() {
 # returns the exit code of the last 
 # command that was run
 cpnt_exitstatus() {
-    echo ${?}
-}
+  [ "${exit_status[show_code]}" = "true" ] \
+    && local exit=${?}
 
-# character depending on the exit code of last command ran
-#
-# returns the character given at '$1' if the exit code 
-# of the last command that was run wsa 0. returns the
-# character given at '$2' if the exit code is anything else
-cpnt_exitstatus_char() {
-    [ ${?} = 0 ] && echo -e "${1}" || echo -e "${2}" 
+  [ "${?}" = "0" ] \
+    && printf "${exit_status[prefix]}${exit_status[pass_icon]}${exit}${exit_status[suffix]}" \
+    || printf "${exit_status[prefix]}${exit_status[fail_icon]}${exit}${exit_status[suffix]}"
 }
 
 # current working directory
 #
 # returns the full path of the current working directory
-cpnt_pwd() {
-    echo "${PWD}"
-}
+cpnt_cwd() {
+  if [ "${cwd[abbreviate_repo]}" = "true" ]; then
+    source /usr/lib/promptly/component.d/git
+    __init_git_info
+  fi
 
-# abbreviated current working directory
-#
-# returns the full path of the current working directory
-# with '$HOME' being abbreviated to '~'
-cpnt_shortpwd() {
-    echo "${PWD/#$HOME/\~}"
+  if [ "${inside_gitdir}" = "true" ]; then
+    printf "${cwd[prefix]}${toplevel}/${gitdir}${cwd[suffix]}"
+  elif [ "${inside_worktree}"  = "true" ]; then
+    printf "${cwd[prefix]}${toplevel}${prefix}${cwd[suffix]}"
+  elif [ "${cwd[abbreviate_home]}" = "true" ]; then
+    printf "${cwd[prefix]}${PWD/#$HOME/\~}${cwd[suffix]}"
+  else
+    printf "${cwd[prefix]}${PWD}${cwd[suffix]}"
+  fi
 }
-
