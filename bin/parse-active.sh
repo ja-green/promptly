@@ -32,9 +32,13 @@ parse_cmd() {
   
   typeset -n section="${cmd#cpnt_}"
   
-  printf "${section[background]}${section[foreground]}"
+  [ ! -z "${section[background]}" ] && printf "${section[background]}"
+  [ ! -z "${section[foreground]}" ] && printf "${section[foreground]}"
+
   printf "$(eval "${cmd}" 2>/dev/null)"
-  printf "\x01$(tput sgr0)\x02"
+  
+  [ ! -z "${section[background]}" ] || [ ! -z "${section[foreground]}" ] \
+    && printf "\x01$(tput sgr0)\x02"
 
   return $((${#cmd}+1))
 }
@@ -94,6 +98,9 @@ cmd_parse_active() {
   done
 
   if [ ! -z "${format}" ]; then
+    [ ! -z "${prompt_r}" ] \
+      && prompt_r="$(printf "${prompt_r}" | tr -d '\001\002')"
+
     [ ! -z "${prompt_r}" ] && printf "\x01$(tput sc)%$(($(tput cols)+${alignment}))s$(tput rc)\x02" "${prompt_r}"
     [ ! -z "${prompt_l}" ] && printf "%s" "${prompt_l}"
     [ ! -z "${prompt_t}" ] && printf "\x01\033]0;%s\007\x02" "${prompt_t}"
